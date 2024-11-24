@@ -1,0 +1,21 @@
+# Build artifacts
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Secrets and sensitive configuration
+appsettings.Development.json
+path_to_your_certificate.pfx
+
+# Logs
+*.log
+
+# Visual Studio specific
+.vscode/
+.vs/
+.idea/
