@@ -1,140 +1,140 @@
-using ActiveLogin.Authentication.BankId.AspNetCore.Auth;
-using ActiveLogin.Authentication.BankId.Core;
-using ActiveLogin.Authentication.BankId.QrCoder;
-using ActiveLogin.Authentication.BankId.UaParser;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.CookiePolicy;
-using ActiveLogin.Authentication.BankId.AspNetCore;
-using ActiveLogin.Authentication.BankId.AzureMonitor;
-using ActiveLogin.Authentication.BankId.AspNetCore.Sign;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using CigarCertifierAPI.Configurations;
+using CigarCertifierAPI.Data;
+using CigarCertifierAPI.Services;
+using CigarCertifierAPI.Utilities;
+using DotNetEnv;
+using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
-var builder = WebApplication.CreateBuilder(args);
-
-var services = builder.Services;
-var configuration = builder.Configuration;
-var environment = builder.Environment;
-
-// Add services to the container
-builder.Services.AddControllers();
-
-// Add telemetry
-services.AddApplicationInsightsTelemetry(configuration);
-
-// Configure cookie policy
-services.Configure<CookiePolicyOptions>(options =>
+internal class Program
 {
-    options.MinimumSameSitePolicy = SameSiteMode.None;
-    options.HttpOnly = HttpOnlyPolicy.Always;
-    options.Secure = CookieSecurePolicy.Always;
-});
-
-// Add Active Login - BankID
-services
-    .AddBankId(bankId =>
+    private static void Main(string[] args)
     {
-        bankId.AddDebugEventListener();
-        bankId.AddApplicationInsightsEventListener(options =>
-        {
-            options.LogUserPersonalIdentityNumber = false;
-            options.LogUserPersonalIdentityNumberHints = true;
+        // Load environment variables from .env file
+        Env.Load();
 
-            options.LogUserNames = false;
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-            options.LogUserBankIdIssueDate = false;
+        builder.Configuration.AddEnvironmentVariables();
 
-            options.LogDeviceIpAddress = false;
-            options.LogDeviceUniqueHardwareId = false;
-        });
+        // Logging configuration
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
+        builder.Logging.AddDebug();
 
-        bankId.UseQrCoderQrCodeGenerator();
-        bankId.UseUaParserDeviceDetection();
+        IServiceCollection services = builder.Services;
+        ConfigurationManager configuration = builder.Configuration;
 
-        bankId.AddCustomBrowserByUserAgent(userAgent => userAgent.Contains("Instagram"), "instagram://");
-        bankId.AddCustomBrowserByUserAgent(userAgent => userAgent.Contains("FBAN") || userAgent.Contains("FBAV"), "fb://");
+        // Register JwtSettings
+        services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+        services.AddSingleton(provider =>
+            provider.GetRequiredService<IOptions<JwtSettings>>().Value);
 
-        if (configuration.GetValue("ActiveLogin:BankId:UseSimulatedEnvironment", false))
-        {
-            bankId.UseSimulatedEnvironment();
-        }
-        else if (configuration.GetValue("ActiveLogin:BankId:UseTestEnvironment", false))
-        {
-            bankId.UseTestEnvironment();
-        }
-        else
-        {
-          //  bankId.UseProductionEnvironment()
-           //     .UseClientCertificateFromAzureKeyVault(configuration.GetSection("ActiveLogin:BankId:ClientCertificate"));
-        }
-    });
+        builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/root/.aspnet/DataProtection-Keys"))
+    .SetApplicationName("CigarCertifierAPI");
 
-// Add Active Login - Auth
-services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie()
-    .AddBankIdAuth(bankId =>
-    {
-        bankId.AddSameDevice(BankIdAuthDefaults.SameDeviceAuthenticationScheme, "BankID (SameDevice)", options => { });
-        bankId.AddOtherDevice(BankIdAuthDefaults.OtherDeviceAuthenticationScheme, "BankID (OtherDevice)", options => { });
-    });
+        // Add Hangfire services
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSqlServerStorage(configuration.GetConnectionString("DefaultConnection")));
 
-// Add Active Login - Sign
-services.AddBankIdSign(bankId =>
-{
-    bankId.AddSameDevice(BankIdSignDefaults.SameDeviceConfigKey, "BankID (SameDevice)", options => { });
-    bankId.AddOtherDevice(BankIdSignDefaults.OtherDeviceConfigKey, "BankID (OtherDevice)", options => { });
-});
+        services.AddHangfireServer();
 
-// Add Authorization
-builder.Services.AddAuthorization(options =>
-{
-    // By default, all incoming requests will be authorized according to the default policy.
-    options.FallbackPolicy = options.DefaultPolicy;
-});
+        // Add EF Core
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-// Add MVC
-services.AddControllersWithViews();
+        // JWT configuration
+        JwtSettings jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()
+                                    ?? throw new InvalidOperationException("JWT settings are not configured properly.");
+        services.AddSingleton(jwtSettings);
 
-// Add BankID Authentication
-builder.Services.AddBankId(bankId => {
-    bankId.AddDebugEventListener();
-    bankId.UseQrCoderQrCodeGenerator();
-    bankId.UseUaParserDeviceDetection();
-    bankId.UseSimulatedEnvironment();
-});
+        string jwtSecret = builder.Configuration["JWT_SECRET"]
+           ?? throw new InvalidOperationException("JWT_SECRET is not set.");
+        Console.WriteLine($"JWT_SECRET: {jwtSecret}");
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-        .AddCookie();
+        SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(jwtSecret));
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-        .AddBankIdAuth(bankId =>
-         {
-             bankId.AddSameDevice();
-             bankId.AddOtherDevice();
-         })
-        .AddCookie();
-builder.Services.AddApplicationInsightsTelemetry();
+        // Add Authentication
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
+                    IssuerSigningKey = key
+                };
 
-var app = builder.Build();
+                // Custom token validation for blacklist
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        ApplicationDbContext dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
+                        if (context.SecurityToken is JwtSecurityToken jwtToken)
+                        {
+                            string token = jwtToken.RawData;
+                            if (!await TokenHelper.IsTokenValid(token, dbContext))
+                            {
+                                logger.LogWarning("Token is invalid or blacklisted: {Token}", token);
+                                context.Fail("This token is invalid or revoked.");
+                            }
+                            else
+                            {
+                                logger.LogInformation("Token validated: {Token}", token);
+                            }
+                        }
+                        else
+                        {
+                            logger.LogWarning("Security token is not a valid JwtSecurityToken.");
+                            context.Fail("Invalid token type.");
+                        }
+                    }
+                };
+            });
+
+        services.AddAuthorization();
+
+        // Register services
+        services.AddScoped<TokenCleanupService>();
+        services.AddScoped<LoggerService>();
+
+        // Add controllers
+        services.AddControllers();
+
+        WebApplication app = builder.Build();
+
+        // Use Hangfire Dashboard (Optional)
+        app.UseHangfireDashboard();
+
+        // Schedule cleanup job
+        RecurringJob.AddOrUpdate<TokenCleanupService>(
+            "CleanupExpiredTokens",
+            service => service.CleanupExpiredTokensAsync(),
+            Cron.Hourly);
+
+        app.UseHttpsRedirection();
+     //   app.UseStaticFiles();
+        app.UseRouting();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapControllers();
+        app.Run();
+    }
 }
-else
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseRouting();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
-

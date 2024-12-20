@@ -1,4 +1,4 @@
-@CigarCertifierAPI_HostAddress = http://localhost:5021
+@CigarCertifierAPI_HostAddress = http://localhost:5000
 
 GET {{CigarCertifierAPI_HostAddress}}/CigarCertifier/
 Accept: application/json

@@ -1,0 +1,64 @@
+services:
+  sqlserver:
+    build:
+      context: .
+      dockerfile: ./CigarCertifierAPI/Dockerfile.sqlserver
+    container_name: sqlserver
+    environment:
+      env_file: .env
+      SA_PASSWORD: "${SA_PASSWORD}"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./CigarCertifierAPI/docker/init-db.bak:/init-db.bak
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD} -Q 'IF DB_ID('CigarCertifierDB') IS NOT NULL SELECT 1'"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    entrypoint: >
+      /bin/bash -c "
+      /opt/mssql/bin/sqlservr & 
+      sleep 20 && 
+      /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD} -Q \"
+      RESTORE DATABASE [CigarCertifierDB]
+      FROM DISK = '/init-db.bak'
+      WITH MOVE 'CigarCertifierDB' TO '/var/opt/mssql/data/CigarCertifierDB.mdf',
+           MOVE 'CigarCertifierDB_log' TO '/var/opt/mssql/data/CigarCertifierDB_log.ldf';
+      \" &&
+      wait"
+    networks:
+      - app-network
+
+  cigarcertifierapi:
+    build:
+      context: .
+      dockerfile: ./CigarCertifierAPI/Dockerfile
+    container_name: cigarcertifier-api
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    environment:
+      env_file: .env
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:5000;https://+:5001"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CigarCertifierDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      JWT_SECRET: "${JWT_SECRET}"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    entrypoint: >
+      /bin/bash -c "
+      echo 'Waiting for SQL Server to be ready...' &&
+      for i in {1..20}; do
+        dotnet CigarCertifierAPI.dll && break || sleep 5;
+      done"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+

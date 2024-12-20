@@ -3,6 +3,10 @@
     "appInsights1": {
       "type": "appInsights",
       "dynamicId": null
+    },
+    "identityapp1": {
+      "ignored": "true",
+      "type": "identityapp"
     }
   }
 }

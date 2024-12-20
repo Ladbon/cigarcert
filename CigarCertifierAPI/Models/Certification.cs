@@ -1,6 +1,6 @@
 ﻿namespace CigarCertifierAPI.Models
 {
-public class Certification
+    public class Certification
     {
         public int Id { get; set; }
         public required string Name { get; set; }
