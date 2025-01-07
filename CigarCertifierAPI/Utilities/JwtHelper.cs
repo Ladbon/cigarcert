@@ -21,11 +21,11 @@ namespace CigarCertifierAPI.Utilities
 
             // Define the JWT claims
             Claim[] claims =
-            [
-                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
-        new Claim(JwtRegisteredClaimNames.Email, user.Email),
-        new Claim("userid", user.Id.ToString())
-            ];
+            {
+                    new(JwtRegisteredClaimNames.Sub, user.Username),
+                    new(JwtRegisteredClaimNames.Email, user.Email),
+                    new("userid", user.Id.ToString())
+                };
 
             // Set token expiry
             DateTime expiry = DateTime.UtcNow.AddHours(1);
@@ -38,9 +38,12 @@ namespace CigarCertifierAPI.Utilities
                 expires: expiry,
                 signingCredentials: creds);
 
-            return (new JwtSecurityTokenHandler().WriteToken(token), expiry);
-        }
+            string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+            Console.WriteLine($"Generated Token: {tokenString}");
+            Console.WriteLine($"Secret Key Used: {settings.Secret}");
 
+            return (tokenString, expiry);
+        }
 
         public static int GetUserIdFromClaims(ClaimsPrincipal user)
         {
@@ -58,7 +61,6 @@ namespace CigarCertifierAPI.Utilities
             string? secretKeyFromEnv = Environment.GetEnvironmentVariable("JWT_SECRET");
 
             Console.WriteLine($"Jwt:SecretKey from config: {configuration["Jwt:SecretKey"]}");
-
             Console.WriteLine($"Config SecretKey: {secretKeyFromConfig}");
             Console.WriteLine($"Environment SecretKey: {secretKeyFromEnv}");
 

@@ -15,6 +15,13 @@
       },
       "publishAllPorts": true,
       "useSSL": false
+    },
+    "WSL": {
+      "commandName": "WSL2",
+      "environmentVariables": {
+        "ASPNETCORE_HTTP_PORTS": "8080"
+      },
+      "distributionName": ""
     }
   }
 }

@@ -16,14 +16,35 @@ namespace CigarCertifierAPI.Services
 
         public async Task CleanupExpiredTokensAsync()
         {
-            List<Models.BlacklistedToken> expiredTokens = await _dbContext.BlacklistedTokens
-                .Where(bt => bt.ExpiresAt < DateTime.UtcNow)
+            var now = DateTime.UtcNow;
+
+            // Remove expired blacklisted tokens
+            var expiredBlacklistedTokens = await _dbContext.BlacklistedTokens
+                .Where(bt => bt.ExpiresAt <= now)
                 .ToListAsync();
 
-            _dbContext.BlacklistedTokens.RemoveRange(expiredTokens);
-            int deletedCount = await _dbContext.SaveChangesAsync();
+            if (expiredBlacklistedTokens.Any())
+            {
+                _dbContext.BlacklistedTokens.RemoveRange(expiredBlacklistedTokens);
+                _logger.LogInformation("{Count} expired blacklisted tokens removed at {Time}", expiredBlacklistedTokens.Count, now);
+            }
 
-            _logger.LogInformation("{DeletedCount} expired tokens removed at {Time}", deletedCount, DateTime.UtcNow);
+            // Remove expired active tokens
+            var expiredActiveTokens = await _dbContext.ActiveTokens
+                .Where(at => at.ExpiresAt <= now)
+                .ToListAsync();
+
+            if (expiredActiveTokens.Any())
+            {
+                _dbContext.ActiveTokens.RemoveRange(expiredActiveTokens);
+                _logger.LogInformation("{Count} expired active tokens removed at {Time}", expiredActiveTokens.Count, now);
+            }
+
+            // Save changes if any tokens were removed
+            if (expiredBlacklistedTokens.Any() || expiredActiveTokens.Any())
+            {
+                await _dbContext.SaveChangesAsync();
+            }
         }
     }
 }

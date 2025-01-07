@@ -169,7 +169,37 @@ namespace CigarCertifierAPI.Controllers
                 }
             }
 
+            // Check if a valid token already exists for the user
+            var existingToken = await _dbContext.ActiveTokens
+                .Where(t => t.UserId == user.Id && t.ExpiresAt > DateTime.UtcNow)
+                .FirstOrDefaultAsync();
+
+            // Check if the existing token is blacklisted
+            bool isTokenBlacklisted = existingToken != null && await TokenHelper.IsTokenBlacklisted(existingToken.Token, _dbContext);
+
+            if (existingToken != null && !isTokenBlacklisted)
+            {
+                // User is already logged in
+                return Ok(new { Message = "User is already logged in.", existingToken.Token, existingToken.ExpiresAt });
+            }
+
             (string token, DateTime expiry) = JwtHelper.GenerateJwtToken(user, _jwtSettings);
+
+            // Store the new token in the ActiveTokens table using ActiveTokenDto
+            ActiveTokenDto newActiveToken = new()
+            {
+                Token = token,
+                UserId = user.Id,
+                ExpiresAt = expiry
+            };
+
+            _dbContext.ActiveTokens.Add(new ActiveToken
+            {
+                Token = newActiveToken.Token,
+                UserId = newActiveToken.UserId,
+                ExpiresAt = newActiveToken.ExpiresAt
+            });
+            await _dbContext.SaveChangesAsync();
 
             _loggerService.LogLoginSuccess(model.Username);
             return Ok(new { Token = token, ExpiresAt = expiry });
@@ -206,13 +236,22 @@ namespace CigarCertifierAPI.Controllers
                 return BadRequest("Token has already expired.");
             }
 
+            // Add token to blacklist
             BlacklistedToken blacklistedToken = new()
             {
                 Token = token,
                 ExpiresAt = expiry.Value
             };
-
             _dbContext.BlacklistedTokens.Add(blacklistedToken);
+
+            // Remove the active token
+            var activeToken = await _dbContext.ActiveTokens.FirstOrDefaultAsync(at => at.Token == token);
+            if (activeToken != null)
+            {
+                _dbContext.ActiveTokens.Remove(activeToken);
+                await _dbContext.SaveChangesAsync();
+            }
+
             await _dbContext.SaveChangesAsync();
 
             _loggerService.LogLogoutSuccess();
