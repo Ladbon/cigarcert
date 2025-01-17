@@ -41,14 +41,7 @@
 
         private void LogEvent(string message, params object[] args)
         {
-            try
-            {
-                _logger.LogInformation(message, args);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while logging an event: {Message}", message);
-            }
+            _logger.LogInformation(message, args);
         }
 
         private void LogWarning(string message, params object[] args)
@@ -61,6 +54,11 @@
             {
                 _logger.LogError(ex, "An error occurred while logging a warning: {Message}", message);
             }
+        }
+
+        public void LogError(Exception ex, string message, params object[] args)
+        {
+            _logger.LogError(ex, message, args);
         }
 
         private void LogDebug(string message, params object[] args)

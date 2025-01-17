@@ -6,6 +6,7 @@ using CigarCertifierAPI.Services;
 using CigarCertifierAPI.Utilities;
 using DotNetEnv;
 using Hangfire;
+using Hangfire.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using System.Reflection;
 
 internal class Program
 {
@@ -25,19 +28,41 @@ internal class Program
 
         builder.Configuration.AddEnvironmentVariables();
 
-        // Logging configuration
+        // Remove default logging providers
         builder.Logging.ClearProviders();
-        builder.Logging.AddConsole();
-        builder.Logging.AddDebug();
+
+        // Configure Serilog
+        Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+
+        // Use Serilog
+        builder.Host.UseSerilog();
 
         IServiceCollection services = builder.Services;
         ConfigurationManager configuration = builder.Configuration;
 
+        // Swagger configuration with XML comments
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(options =>
+        {
+            string xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            string xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            options.IncludeXmlComments(xmlPath);
+
+            // If your models are in a different assembly:
+            // var xmlModelFile = "CigarCertifierAPI.xml";
+            // var xmlModelPath = Path.Combine(AppContext.BaseDirectory, xmlModelFile);
+            // options.IncludeXmlComments(xmlModelPath);
+        });
+
         // Register JwtSettings
-        services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+        services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.AddSingleton(provider =>
         {
-            var jwtSettings = provider.GetRequiredService<IOptions<JwtSettings>>().Value;
+            JwtSettings jwtSettings = provider.GetRequiredService<IOptions<JwtSettings>>().Value;
             jwtSettings.Secret = JwtHelper.GetJwtSecret(configuration);
             return jwtSettings;
         });
@@ -45,21 +70,21 @@ internal class Program
         // Register LoggerService
         services.AddSingleton<LoggerService>();
 
-        builder.Services.AddDataProtection()
+        // Data Protection
+        services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo("/root/.aspnet/DataProtection-Keys"))
             .SetApplicationName("CigarCertifierAPI");
 
         // Add MVC controllers
         services.AddControllers();
 
-        // Add Hangfire services
+        // Add Hangfire services and server
         services.AddHangfire(config => config
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
             .UseSqlServerStorage(configuration.GetConnectionString("DefaultConnection")));
 
-        // Add Hangfire server
         services.AddHangfireServer();
 
         // Add EF Core
@@ -73,8 +98,7 @@ internal class Program
         services.AddSingleton(jwtSettings);
 
         string jwtSecret = jwtSettings.Secret
-           ?? throw new InvalidOperationException("JWT_SECRET is not set.");
-        Console.WriteLine($"JWT_SECRET: {jwtSecret}");
+            ?? throw new InvalidOperationException("JWT_SECRET is not set.");
 
         SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(jwtSecret));
         SigningCredentials creds = new(key, SecurityAlgorithms.HmacSha256);
@@ -107,7 +131,7 @@ internal class Program
                 {
                     OnTokenValidated = async context =>
                     {
-                        ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        ILogger<Program> logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
                         ApplicationDbContext dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
 
                         if (context.SecurityToken is JwtSecurityToken jwtToken)
@@ -133,8 +157,8 @@ internal class Program
                     },
                     OnAuthenticationFailed = context =>
                     {
-                        ILogger logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                        logger.LogError("Authentication failed: {Exception}", context.Exception);
+                        ILogger<Program> logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogError(context.Exception, "Authentication failed.");
                         return Task.CompletedTask;
                     }
                 };
@@ -144,10 +168,16 @@ internal class Program
 
         WebApplication app = builder.Build();
 
+        // Use Serilog request logging
+        app.UseSerilogRequestLogging();
+
         app.UseHttpsRedirection();
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
+
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
         // Use Hangfire Dashboard (Optional)
         app.UseHangfireDashboard();

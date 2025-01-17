@@ -1,0 +1,106 @@
+2025-01-17 10:01:40.996 +01:00 [INF] Start installing Hangfire SQL objects...
+2025-01-17 10:01:41.670 +01:00 [INF] Hangfire SQL objects installed.
+2025-01-17 10:01:42.212 +01:00 [ERR] An error occurred while reading the key ring.
+System.UnauthorizedAccessException: Access to the path '/root/.aspnet/DataProtection-Keys' is denied.
+ ---> System.IO.IOException: Permission denied
+   --- End of inner exception stack trace ---
+   at System.IO.FileSystem.CreateDirectory(String fullPath, UnixFileMode unixCreateMode)
+   at System.IO.DirectoryInfo.Create()
+   at Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository.GetAllElementsCore()+MoveNext()
+   at System.Collections.Generic.List`1..ctor(IEnumerable`1 collection)
+   at System.Linq.Enumerable.ToList[TSource](IEnumerable`1 source)
+   at Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository.GetAllElements()
+   at Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager.GetAllKeys()
+   at Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider.CreateCacheableKeyRingCore(DateTimeOffset now, IKey keyJustAdded)
+   at System.Threading.Tasks.Task`1.InnerInvoke()
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider.GetKeyRingFromCompletedTaskUnsynchronized(Task`1 task, DateTime utcNow)
+2025-01-17 10:01:42.229 +01:00 [INF] Key ring failed to load during application startup.
+System.UnauthorizedAccessException: Access to the path '/root/.aspnet/DataProtection-Keys' is denied.
+ ---> System.IO.IOException: Permission denied
+   --- End of inner exception stack trace ---
+   at System.IO.FileSystem.CreateDirectory(String fullPath, UnixFileMode unixCreateMode)
+   at System.IO.DirectoryInfo.Create()
+   at Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository.GetAllElementsCore()+MoveNext()
+   at System.Collections.Generic.List`1..ctor(IEnumerable`1 collection)
+   at System.Linq.Enumerable.ToList[TSource](IEnumerable`1 source)
+   at Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository.GetAllElements()
+   at Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager.GetAllKeys()
+   at Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider.CreateCacheableKeyRingCore(DateTimeOffset now, IKey keyJustAdded)
+   at System.Threading.Tasks.Task`1.InnerInvoke()
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(Thread threadPoolThread, ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider.GetKeyRingFromCompletedTaskUnsynchronized(Task`1 task, DateTime utcNow)
+   at Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider.GetCurrentKeyRingCoreNew(DateTime utcNow, Boolean forceRefresh)
+   at Microsoft.AspNetCore.DataProtection.Internal.DataProtectionHostedService.StartAsync(CancellationToken token)
+2025-01-17 10:01:42.234 +01:00 [WRN] Overriding HTTP_PORTS '8080' and HTTPS_PORTS ''. Binding to values defined by URLS instead 'http://*:5000;'.
+2025-01-17 10:01:42.284 +01:00 [INF] Now listening on: http://[::]:5000
+2025-01-17 10:01:42.289 +01:00 [INF] Starting Hangfire Server using job storage: 'SQL Server: 172.26.211.97,1433@CigarCertifierDB'
+2025-01-17 10:01:42.290 +01:00 [INF] Using the following options for SQL Server job storage: Queue poll interval: 00:00:00.
+2025-01-17 10:01:42.291 +01:00 [INF] Using the following options for Hangfire Server:
+    Worker count: 20
+    Listening queues: 'default'
+    Shutdown timeout: 00:00:15
+    Schedule polling interval: 00:00:15
+2025-01-17 10:01:42.305 +01:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-01-17 10:01:42.306 +01:00 [INF] Hosting environment: Production
+2025-01-17 10:01:42.306 +01:00 [INF] Content root path: /mnt/c/Users/ladfr/source/repos/cigarcert/CigarCertifierAPI
+2025-01-17 10:01:42.332 +01:00 [INF] Server upp99:65641:8a0f825a successfully announced in 18.8158 ms
+2025-01-17 10:01:42.338 +01:00 [INF] Server upp99:65641:8a0f825a is starting the registered dispatchers: ServerWatchdog, ServerJobCancellationWatcher, ExpirationManager, CountersAggregator, SqlServerHeartbeatProcess, Worker, DelayedJobScheduler, RecurringJobScheduler...
+2025-01-17 10:01:42.364 +01:00 [INF] 1 servers were removed due to timeout
+2025-01-17 10:01:42.536 +01:00 [INF] Server upp99:65641:8a0f825a all the dispatchers started
+2025-01-17 10:01:43.455 +01:00 [INF] Executed DbCommand (12ms) [Parameters=[@__now_0='?' (DbType = DateTime2)], CommandType='"Text"', CommandTimeout='30']
+SELECT [b].[Id], [b].[ExpiresAt], [b].[Token]
+FROM [BlacklistedTokens] AS [b]
+WHERE [b].[ExpiresAt] <= @__now_0
+2025-01-17 10:01:43.473 +01:00 [INF] Executed DbCommand (3ms) [Parameters=[@__now_0='?' (DbType = DateTime2)], CommandType='"Text"', CommandTimeout='30']
+SELECT [a].[Id], [a].[ExpiresAt], [a].[Token], [a].[UserId]
+FROM [ActiveTokens] AS [a]
+WHERE [a].[ExpiresAt] <= @__now_0
+2025-01-17 10:01:43.502 +01:00 [INF] 1 expired active tokens removed at "2025-01-17T09:01:42.8716835Z"
+2025-01-17 10:01:43.556 +01:00 [INF] Executed DbCommand (5ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SET IMPLICIT_TRANSACTIONS OFF;
+SET NOCOUNT ON;
+DELETE FROM [ActiveTokens]
+OUTPUT 1
+WHERE [Id] = @p0;
+2025-01-17 10:22:00.930 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger - null null
+2025-01-17 10:22:00.934 +01:00 [WRN] Failed to determine the https port for redirect.
+2025-01-17 10:22:01.194 +01:00 [INF] HTTP GET /swagger responded 301 in 258.9489 ms
+2025-01-17 10:22:01.209 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger - 301 0 null 278.109ms
+2025-01-17 10:22:01.226 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/index.html - null null
+2025-01-17 10:22:01.288 +01:00 [INF] HTTP GET /swagger/index.html responded 200 in 56.1603 ms
+2025-01-17 10:22:01.289 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/index.html - 200 null text/html;charset=utf-8 62.6434ms
+2025-01-17 10:22:01.329 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui.css - null null
+2025-01-17 10:22:01.334 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/index.css - null null
+2025-01-17 10:22:01.344 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-standalone-preset.js - null null
+2025-01-17 10:22:01.356 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/index.js - null null
+2025-01-17 10:22:01.383 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-bundle.js - null null
+2025-01-17 10:22:01.383 +01:00 [INF] HTTP GET /swagger/index.js responded 200 in 22.5596 ms
+2025-01-17 10:22:01.384 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/index.js - 200 null application/javascript;charset=utf-8 27.9827ms
+2025-01-17 10:22:01.396 +01:00 [INF] Sending file. Request path: '/index.css'. Physical path: 'N/A'
+2025-01-17 10:22:01.397 +01:00 [INF] HTTP GET /swagger/index.css responded 200 in 48.5544 ms
+2025-01-17 10:22:01.398 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/index.css - 200 202 text/css 63.8138ms
+2025-01-17 10:22:01.412 +01:00 [INF] Sending file. Request path: '/swagger-ui.css'. Physical path: 'N/A'
+2025-01-17 10:22:01.415 +01:00 [INF] HTTP GET /swagger/swagger-ui.css responded 200 in 83.1122 ms
+2025-01-17 10:22:01.415 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui.css - 200 152035 text/css 86.2392ms
+2025-01-17 10:22:01.438 +01:00 [INF] Sending file. Request path: '/swagger-ui-standalone-preset.js'. Physical path: 'N/A'
+2025-01-17 10:22:01.439 +01:00 [INF] HTTP GET /swagger/swagger-ui-standalone-preset.js responded 200 in 86.4823 ms
+2025-01-17 10:22:01.440 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-standalone-preset.js - 200 230007 text/javascript 95.2673ms
+2025-01-17 10:22:01.525 +01:00 [INF] Sending file. Request path: '/swagger-ui-bundle.js'. Physical path: 'N/A'
+2025-01-17 10:22:01.530 +01:00 [INF] HTTP GET /swagger/swagger-ui-bundle.js responded 200 in 144.6460 ms
+2025-01-17 10:22:01.532 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-bundle.js - 200 1426050 text/javascript 148.5967ms
+2025-01-17 10:22:01.644 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/favicon-16x16.png - null null
+2025-01-17 10:22:01.645 +01:00 [INF] Sending file. Request path: '/favicon-16x16.png'. Physical path: 'N/A'
+2025-01-17 10:22:01.645 +01:00 [INF] HTTP GET /swagger/favicon-16x16.png responded 200 in 0.8250 ms
+2025-01-17 10:22:01.646 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/favicon-16x16.png - 200 665 image/png 2.1151ms
+2025-01-17 10:22:01.665 +01:00 [INF] Request starting HTTP/1.1 GET http://localhost:5000/swagger/v1/swagger.json - null null
+2025-01-17 10:22:01.760 +01:00 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 94.4133 ms
+2025-01-17 10:22:01.761 +01:00 [INF] Request finished HTTP/1.1 GET http://localhost:5000/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 95.7078ms

@@ -23,7 +23,7 @@ namespace CigarCertifierAPI.Services
                 .Where(bt => bt.ExpiresAt <= now)
                 .ToListAsync();
 
-            if (expiredBlacklistedTokens.Any())
+            if (expiredBlacklistedTokens.Count > 0)
             {
                 _dbContext.BlacklistedTokens.RemoveRange(expiredBlacklistedTokens);
                 _logger.LogInformation("{Count} expired blacklisted tokens removed at {Time}", expiredBlacklistedTokens.Count, now);
@@ -34,14 +34,14 @@ namespace CigarCertifierAPI.Services
                 .Where(at => at.ExpiresAt <= now)
                 .ToListAsync();
 
-            if (expiredActiveTokens.Any())
+            if (expiredActiveTokens.Count > 0)
             {
                 _dbContext.ActiveTokens.RemoveRange(expiredActiveTokens);
                 _logger.LogInformation("{Count} expired active tokens removed at {Time}", expiredActiveTokens.Count, now);
             }
 
             // Save changes if any tokens were removed
-            if (expiredBlacklistedTokens.Any() || expiredActiveTokens.Any())
+            if (expiredBlacklistedTokens.Count > 0 || expiredActiveTokens.Count > 0)
             {
                 await _dbContext.SaveChangesAsync();
             }

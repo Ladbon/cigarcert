@@ -21,11 +21,11 @@ namespace CigarCertifierAPI.Utilities
 
             // Define the JWT claims
             Claim[] claims =
-            {
+            [
                     new(JwtRegisteredClaimNames.Sub, user.Username),
                     new(JwtRegisteredClaimNames.Email, user.Email),
                     new("userid", user.Id.ToString())
-                };
+                ];
 
             // Set token expiry
             DateTime expiry = DateTime.UtcNow.AddHours(1);
@@ -45,13 +45,19 @@ namespace CigarCertifierAPI.Utilities
             return (tokenString, expiry);
         }
 
-        public static int GetUserIdFromClaims(ClaimsPrincipal user)
+        public static int? GetUserIdFromClaims(ClaimsPrincipal user)
         {
-            string? userIdClaim = user.FindFirst("userid")?.Value;
-            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (user?.Identity == null || !user.Identity.IsAuthenticated)
             {
-                throw new UnauthorizedAccessException("Invalid or missing 'userid' claim.");
+                return null;
             }
+
+            var userIdClaim = user.Claims.FirstOrDefault(c => c.Type == "userid");
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return null;
+            }
+
             return userId;
         }
 
