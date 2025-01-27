@@ -19,3 +19,6 @@ path_to_your_certificate.pfx
 .vscode/
 .vs/
 .idea/
+/CigarCertifierAPI/Logs/log-20250116.txt
+/CigarCertifierAPI/Logs/log-20250117.txt
+/CigarCertifierAPI/Logs/log-20250124.txt
