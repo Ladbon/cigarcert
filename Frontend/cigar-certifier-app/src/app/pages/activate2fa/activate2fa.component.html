@@ -1,0 +1,22 @@
+<h2>Activate Two-Factor Authentication</h2>
+<div *ngIf="qrCodeUrl">
+  <p>Scan the QR code below with your authentication app:</p>
+  <img [src]="qrCodeUrl" alt="QR Code for 2FA" />
+  <p>Or use this secret key: {{ secretKey }}</p>
+  <div>
+    <label for="verificationCode">Enter the code from your app:</label>
+    <input type="text"
+           id="verificationCode"
+           [(ngModel)]="verificationCode"
+           name="verificationCode"
+           required />
+  </div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <div *ngIf="message" class="message">{{ message }}</div>
+  <div>
+    <button (click)="onActivate2FA()">Activate 2FA</button>
+  </div>
+</div>
+<div *ngIf="!qrCodeUrl && error">
+  <p class="error">{{ error }}</p>
+</div>

@@ -67,6 +67,17 @@ internal class Program
             return jwtSettings;
         });
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("CorsPolicy", builder =>
+            {
+                builder
+                    .WithOrigins("http://localhost:4200")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
+        });
+
         // Register LoggerService
         services.AddSingleton<LoggerService>();
 
@@ -175,6 +186,7 @@ internal class Program
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseCors("CorsPolicy");
 
         app.UseSwagger();
         app.UseSwaggerUI();

@@ -1,0 +1,44 @@
+<h2>Register</h2>
+<form (submit)="onRegister()">
+  <div>
+    <label for="username">Username:</label>
+    <input type="text"
+           id="username"
+           [(ngModel)]="username"
+           name="username"
+           required />
+  </div>
+  <div>
+    <label for="email">Email:</label>
+    <input type="email"
+           id="email"
+           [(ngModel)]="email"
+           name="email"
+           required />
+  </div>
+  <div>
+    <label for="password">Password:</label>
+    <input type="password"
+           id="password"
+           [(ngModel)]="password"
+           name="password"
+           required />
+  </div>
+  <div>
+    <label>
+      <input type="checkbox"
+             [(ngModel)]="enable2FA"
+             name="enable2FA" />
+      Enable Two-Factor Authentication
+    </label>
+  </div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <div *ngIf="message" class="message">{{ message }}</div>
+  <div>
+    <button type="submit">Register</button>
+  </div>
+</form>
+<p>
+  Already have an account?
+  <a routerLink="/">Login</a>
+</p>

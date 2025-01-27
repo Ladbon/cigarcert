@@ -1,0 +1,32 @@
+<h2>Delete Account</h2>
+<form (submit)="onDeleteAccount()">
+  <p>Please confirm your password to delete your account.</p>
+  <div>
+    <label for="currentPassword1">Password:</label>
+    <input type="password"
+           id="currentPassword1"
+           [(ngModel)]="currentPassword1"
+           name="currentPassword1"
+           required />
+  </div>
+  <div>
+    <label for="currentPassword2">Confirm Password:</label>
+    <input type="password"
+           id="currentPassword2"
+           [(ngModel)]="currentPassword2"
+           name="currentPassword2"
+           required />
+  </div>
+  <div *ngIf="twoFaEnabled">
+    <label for="twoFaToken">2FA Code (if enabled):</label>
+    <input type="text"
+           id="twoFaToken"
+           [(ngModel)]="twoFaToken"
+           name="twoFaToken" />
+  </div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <div *ngIf="message" class="message">{{ message }}</div>
+  <div>
+    <button type="submit">Delete Account</button>
+  </div>
+</form>

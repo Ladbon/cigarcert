@@ -1,0 +1,12 @@
+<h2>Profile</h2>
+<p><strong>Username:</strong> {{ user?.username }}</p>
+<!-- Password should not be displayed in plain text -->
+<p><strong>Password:</strong> ********</p>
+<div>
+  <button routerLink="/reset-password">Reset Password</button>
+  <button routerLink="/activate-2fa">Activate 2FA</button>
+  <button routerLink="/delete-account">Delete Account</button>
+</div>
+<div>
+  <button (click)="logout()">Logout</button>
+</div>

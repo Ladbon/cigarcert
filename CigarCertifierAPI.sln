@@ -16,6 +16,27 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CigarCertifierAPI", "CigarC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CigarCertifierAPI.Tests", "..\CigarCertifierAPI.Tests\CigarCertifierAPI.Tests.csproj", "{F0066840-CD50-46F6-9838-1A16FE41375D}"
 EndProject
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "cigar-certifier-app", "..\cigar-certifier-app\", "{7395744E-BB1C-435B-9E41-2CA9A4251A7E}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
+		Debug.AspNetCompiler.VirtualPath = "/localhost_50697"
+		Debug.AspNetCompiler.PhysicalPath = "..\cigar-certifier-app\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_50697\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/localhost_50697"
+		Release.AspNetCompiler.PhysicalPath = "..\cigar-certifier-app\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_50697\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "50697"
+		SlnRelativePath = "..\cigar-certifier-app\"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +55,10 @@ Global
 		{F0066840-CD50-46F6-9838-1A16FE41375D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0066840-CD50-46F6-9838-1A16FE41375D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0066840-CD50-46F6-9838-1A16FE41375D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7395744E-BB1C-435B-9E41-2CA9A4251A7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7395744E-BB1C-435B-9E41-2CA9A4251A7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7395744E-BB1C-435B-9E41-2CA9A4251A7E}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{7395744E-BB1C-435B-9E41-2CA9A4251A7E}.Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
