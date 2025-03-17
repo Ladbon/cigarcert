@@ -8,6 +8,6 @@ namespace CigarCertifierAPI.Dto
         /// <summary>
         /// The error message describing the issue.
         /// </summary>
-        public string ErrorMessage { get; set; } = "";
+        public string ErrorMessage { get; set; } = string.Empty;
     }
 }

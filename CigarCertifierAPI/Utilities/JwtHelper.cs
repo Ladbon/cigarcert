@@ -21,14 +21,15 @@ namespace CigarCertifierAPI.Utilities
 
             // Define the JWT claims
             Claim[] claims =
-            [
-                    new(JwtRegisteredClaimNames.Sub, user.Username),
-                    new(JwtRegisteredClaimNames.Email, user.Email),
-                    new("userid", user.Id.ToString())
-                ];
+            {
+        new(JwtRegisteredClaimNames.Sub, user.Username),
+        new(JwtRegisteredClaimNames.Email, user.Email),
+        new("userid", user.Id.ToString()),
+        new("unique_claim", Guid.NewGuid().ToString()) // Add a unique claim
+    };
 
             // Set token expiry
-            DateTime expiry = DateTime.UtcNow.AddHours(1);
+            DateTime expiry = DateTime.UtcNow.AddMinutes(15);
 
             // Create the JWT
             JwtSecurityToken token = new(
@@ -39,8 +40,6 @@ namespace CigarCertifierAPI.Utilities
                 signingCredentials: creds);
 
             string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-            Console.WriteLine($"Generated Token: {tokenString}");
-            Console.WriteLine($"Secret Key Used: {settings.Secret}");
 
             return (tokenString, expiry);
         }
@@ -63,15 +62,22 @@ namespace CigarCertifierAPI.Utilities
 
         public static string GetJwtSecret(IConfiguration configuration)
         {
-            string? secretKeyFromConfig = configuration["Jwt:SecretKey"];
+            // Prioritize the environment variable
             string? secretKeyFromEnv = Environment.GetEnvironmentVariable("JWT_SECRET");
+            if (!string.IsNullOrEmpty(secretKeyFromEnv))
+            {
+                return secretKeyFromEnv;
+            }
 
-            Console.WriteLine($"Jwt:SecretKey from config: {configuration["Jwt:SecretKey"]}");
-            Console.WriteLine($"Config SecretKey: {secretKeyFromConfig}");
-            Console.WriteLine($"Environment SecretKey: {secretKeyFromEnv}");
+            // Fallback to configuration
+            string? secretKeyFromConfig = configuration["Jwt:Secret"];
+            if (!string.IsNullOrEmpty(secretKeyFromConfig))
+            {
+                return secretKeyFromConfig;
+            }
 
-            return secretKeyFromConfig ?? secretKeyFromEnv
-                ?? throw new InvalidOperationException("JWT SecretKey is not configured.");
+            // If neither is set, throw an exception
+            throw new InvalidOperationException("JWT SecretKey is not configured.");
         }
     }
 }

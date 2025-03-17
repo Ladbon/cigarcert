@@ -1,4 +1,8 @@
-﻿namespace CigarCertifierAPI.Dto
+﻿// ResetPasswordDto.cs
+using System.ComponentModel.DataAnnotations;
+using CigarCertifierAPI.Utilities;
+
+namespace CigarCertifierAPI.Dto
 {
     /// <summary>
     /// Represents the data required to reset a user's password.
@@ -8,11 +12,14 @@
         /// <summary>
         /// The token used to authorize the password reset.
         /// </summary>
-        public required string Token { get; set; }
+        [Required]
+        public string Token { get; set; } = default!;
 
         /// <summary>
         /// The new password to be set for the user.
         /// </summary>
-        public required string NewPassword { get; set; }
+        [Required]
+        [PasswordValidation]
+        public string NewPassword { get; set; } = default!;
     }
 }

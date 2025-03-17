@@ -8,12 +8,12 @@ namespace CigarCertifierAPI.Dto
         /// <summary>
         /// A message indicating the result of the token generation.
         /// </summary>
-        public string Message { get; set; } = "";
+        public string Message { get; set; } = string.Empty;
 
         /// <summary>
         /// The generated JWT token.
         /// </summary>
-        public string Token { get; set; } = "";
+        public string Token { get; set; } = string.Empty;
 
         /// <summary>
         /// The expiration date and time of the token.

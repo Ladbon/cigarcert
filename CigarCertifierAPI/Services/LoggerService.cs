@@ -1,4 +1,6 @@
-﻿namespace CigarCertifierAPI.Services
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+
+namespace CigarCertifierAPI.Services
 {
     public class LoggerService
     {
@@ -33,6 +35,9 @@
         private const string TokenValidatedMessage = "Token validated: {Token}";
         private const string TokenBlacklistedMessage = "Token is blacklisted: {Token}";
         private const string UnexpectedTwoFactorError = "An unexpected error occurred during 2FA setup";
+        private const string AttemptActivate2fa = "Attempting to activate 2FA for user ID";
+        private const string SuccessfullyActivated2fa = "2FA activated successfully for user ID";
+        private const string Unexpected2FAError = "An unexpected error occurred during 2FA activation";
 
         public LoggerService(ILogger<LoggerService> logger)
         {
@@ -130,7 +135,14 @@
 
         public void LogTokenValidationFailed(string token)
         {
-            LogWarning(TokenValidationFailedMessage, token);
+            _logger.LogWarning("Token validation failed for token: {RedactedToken}", Redact(token));
+        }
+
+        private string Redact(string token)
+        {
+            if (string.IsNullOrEmpty(token) || token.Length < 10)
+                return "***";
+            return $"{token[..4]}****{token.Substring(token.Length - 4, 4)}";
         }
 
         public void LogPasswordResetSuccess(int userId)
@@ -210,8 +222,33 @@
 
         public void LogUnexpectedTwoFactorError(string message)
         {
-            LogWarning(message + " " + UnexpectedTwoFactorError);
+            LogWarning($"{message} {UnexpectedTwoFactorError}");
         }
 
+        public void Log2FAActivationAttempt(int userId)
+        {
+            LogEvent($"{AttemptActivate2fa} {userId}", userId);
+        }
+
+        public void Log2FAActivationSuccess(int userId)
+        {
+            LogEvent($"{SuccessfullyActivated2fa} {userId}", userId);
+        }
+
+        public void Log2FAActivationFailed(int userId, string reason)
+        {
+            LogWarning($"{Unexpected2FAError} {userId}\nReason: {reason}", userId, reason);
+        }
+        public void LogModelStateErrors(ModelStateDictionary modelState)
+        {
+            foreach (var modelStateEntry in modelState)
+            {
+                var errors = modelStateEntry.Value.Errors;
+                foreach (var error in errors)
+                {
+                    _logger.LogWarning("Validation error on {Key}: {ErrorMessage}", modelStateEntry.Key, error.ErrorMessage);
+                }
+            }
+        }
     }
 }

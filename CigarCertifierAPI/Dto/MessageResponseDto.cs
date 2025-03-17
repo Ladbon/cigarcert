@@ -8,6 +8,6 @@ namespace CigarCertifierAPI.Dto
         /// <summary>
         /// The message content of the response.
         /// </summary>
-        public string Message { get; set; } = "";
+        public string Message { get; set; } = string.Empty;
     }
 }

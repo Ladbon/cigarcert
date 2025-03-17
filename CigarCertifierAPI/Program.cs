@@ -1,3 +1,4 @@
+// Program.cs
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using CigarCertifierAPI.Configurations;
@@ -6,16 +7,15 @@ using CigarCertifierAPI.Services;
 using CigarCertifierAPI.Utilities;
 using DotNetEnv;
 using Hangfire;
-using Hangfire.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Reflection;
+using System.Threading.RateLimiting;
 
 internal class Program
 {
@@ -51,11 +51,6 @@ internal class Program
             string xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             string xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
             options.IncludeXmlComments(xmlPath);
-
-            // If your models are in a different assembly:
-            // var xmlModelFile = "CigarCertifierAPI.xml";
-            // var xmlModelPath = Path.Combine(AppContext.BaseDirectory, xmlModelFile);
-            // options.IncludeXmlComments(xmlModelPath);
         });
 
         // Register JwtSettings
@@ -67,23 +62,21 @@ internal class Program
             return jwtSettings;
         });
 
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy("CorsPolicy", builder =>
-            {
-                builder
-                    .WithOrigins("http://localhost:4200")
-                    .AllowAnyMethod()
-                    .AllowAnyHeader();
-            });
-        });
-
         // Register LoggerService
         services.AddSingleton<LoggerService>();
 
+        // Register EmailService with scoped lifetime and ILogger
+        services.AddScoped<EmailService>();
+
+        // Add Serilog logging
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.AddSerilog(dispose: true);
+        });
+
         // Data Protection
         services.AddDataProtection()
-            .PersistKeysToFileSystem(new DirectoryInfo("/root/.aspnet/DataProtection-Keys"))
+            .PersistKeysToFileSystem(new DirectoryInfo("DataProtection-Keys"))
             .SetApplicationName("CigarCertifierAPI");
 
         // Add MVC controllers
@@ -101,6 +94,55 @@ internal class Program
         // Add EF Core
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        services.AddScoped<TokenCleanupService>();
+        services.AddLogging();
+
+        // **Add Rate Limiting Services**
+        services.AddRateLimiter(options =>
+        {
+            // Define Login Policy
+            options.AddPolicy("LoginPolicy", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: partition => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 50, // Max 5 attempts
+                        Window = TimeSpan.FromMinutes(15), // Per 15 minutes
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    }));
+
+            // Global Rate Limiter
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            {
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: "global",
+                    factory: partition => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 60,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            // Specific Rate Limiter Policy
+            options.AddPolicy("EndpointPolicy", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: "endpoint_policy",
+                    factory: partition => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 100,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    }));
+        });
+
+        services.Configure<CookiePolicyOptions>(options =>
+        {
+            options.MinimumSameSitePolicy = SameSiteMode.Strict;
+        });
 
         // JWT configuration
         JwtSettings jwtSettings = configuration.GetSection("Jwt").Get<JwtSettings>()
@@ -112,7 +154,6 @@ internal class Program
             ?? throw new InvalidOperationException("JWT_SECRET is not set.");
 
         SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(jwtSecret));
-        SigningCredentials creds = new(key, SecurityAlgorithms.HmacSha256);
         IdentityModelEventSource.ShowPII = true;
 
         // Add Authentication
@@ -134,12 +175,25 @@ internal class Program
                     ValidAudience = jwtSettings.Audience,
                     IssuerSigningKey = key,
                     // Ensure the algorithm matches the one used in token generation
-                    RequireSignedTokens = true,
-                    ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 }
+                    RequireSignedTokens = true
                 };
 
                 options.Events = new JwtBearerEvents
                 {
+
+                    OnMessageReceived = context =>
+                    {
+                        // Check if token exists in the cookie
+                        string? token = context.Request.Cookies["token"];
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            // Set the token for the middleware to validate
+                            context.Token = token;
+                        }
+
+                        return Task.CompletedTask;
+                    },
+
                     OnTokenValidated = async context =>
                     {
                         ILogger<Program> logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
@@ -177,16 +231,59 @@ internal class Program
 
         services.AddAuthorization();
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("CorsPolicy", builder =>
+            {
+                builder
+                    .WithOrigins(
+                        "http://localhost:4200",
+                        "https://localhost:4200",
+                        "http://your-production-domain.com",
+                        "https://your-production-domain.com"
+                    )
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials();
+            });
+        });
+
+        // **Register HSTS Services**
+        if (!builder.Environment.IsDevelopment())
+        {
+            services.AddHsts(options =>
+            {
+                options.Preload = true;
+                options.IncludeSubDomains = true;
+                options.MaxAge = TimeSpan.FromDays(365);
+            });
+        }
+
         WebApplication app = builder.Build();
+
+        if (!app.Environment.IsDevelopment())
+        {
+            // **Apply HSTS Middleware Without Arguments**
+            app.UseHsts();
+        }
 
         // Use Serilog request logging
         app.UseSerilogRequestLogging();
 
         app.UseHttpsRedirection();
         app.UseRouting();
+
+        // Apply CORS policy here
+        app.UseCors("CorsPolicy");
+
+        // Add Security Headers Middleware
+        app.UseMiddleware<SecurityHeadersMiddleware>();
+
+        // **Apply Rate Limiting Middleware**
+        app.UseRateLimiter();
+
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseCors("CorsPolicy");
 
         app.UseSwagger();
         app.UseSwaggerUI();

@@ -1,0 +1,41 @@
+<div class="glass-card profile-card">
+  <h2>Your Profile</h2>
+  
+  <div class="profile-info">
+    <p><strong>Username:</strong> {{ user?.username }}</p>
+    
+    <!-- Display 2FA Status -->
+    <p>
+      <strong>Two-Factor Authentication:</strong> 
+      <span [ngClass]="isTwoFactorEnabled ? 'status-enabled' : 'status-disabled'">
+        {{ isTwoFactorEnabled ? 'Enabled' : 'Disabled' }}
+      </span>
+    </p>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="error-message">{{ error }}</div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button class="btn btn-primary" (click)="navigateToResetPassword()">
+      Reset Password
+    </button>
+    
+    <!-- Only show Activate 2FA when not enabled -->
+    <button 
+      *ngIf="!isTwoFactorEnabled" 
+      class="btn btn-primary" 
+      (click)="navigateToActivate2FA()">
+      Activate 2FA
+    </button>
+    
+    <!-- Logout button is full width when 2FA is enabled -->
+    <button 
+      [ngClass]="{'full-width': isTwoFactorEnabled}"
+      class="btn btn-danger" 
+      (click)="logout()">
+      Sign Out
+    </button>
+  </div>
+</div>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using DotNetEnv;
 
 namespace CigarCertifierAPI.Data
 {
@@ -7,14 +8,16 @@ namespace CigarCertifierAPI.Data
     {
         public ApplicationDbContext CreateDbContext(string[] args)
         {
-            // Load configuration
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
-                .Build();
+            // Load environment variables from .env file
+            Env.Load();
 
-            // Get connection string
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            // Get connection string from environment variables
+            var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new Exception("Connection string not found.");
+            }
 
             // Configure DbContextOptions
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();

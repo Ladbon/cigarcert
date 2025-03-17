@@ -8,10 +8,10 @@ namespace CigarCertifierAPI.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<TokenCleanupService> _logger;
 
-        public TokenCleanupService(ApplicationDbContext dbContext, ILogger<TokenCleanupService> logger)
+        public TokenCleanupService(ApplicationDbContext context, ILogger<TokenCleanupService> logger)
         {
-            _dbContext = dbContext;
-            _logger = logger;
+            _dbContext = context ?? throw new ArgumentNullException(nameof(context));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task CleanupExpiredTokensAsync()

@@ -1,0 +1,28 @@
+/* Additional 2FA specific styles */
+.setup-steps {
+    margin: var(--space-lg) 0;
+    counter-reset: step-counter;
+  }
+  
+  .setup-step {
+    margin-bottom: var(--space-md);
+    position: relative;
+    padding-left: 2rem;
+  }
+  
+  .setup-step::before {
+    content: counter(step-counter);
+    counter-increment: step-counter;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--primary);
+    color: var(--text-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+  }

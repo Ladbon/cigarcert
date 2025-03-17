@@ -7,9 +7,18 @@
             return BCrypt.Net.BCrypt.HashPassword(plainPassword);
         }
 
-        public static bool VerifyPassword(string plainPassword, string hashedPassword)
+        public static bool VerifyPassword(string password, string passwordHash)
         {
-            return BCrypt.Net.BCrypt.Verify(plainPassword, hashedPassword);
+            try
+            {
+                return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception but don't crash
+                Console.Error.WriteLine($"Error verifying password: {ex.Message}");
+                return false;
+            }
         }
     }
 }
