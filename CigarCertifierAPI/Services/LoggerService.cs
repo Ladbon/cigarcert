@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Logging;
 
 namespace CigarCertifierAPI.Services
 {
@@ -17,7 +18,7 @@ namespace CigarCertifierAPI.Services
         private const string PasswordResetRequestedMessage = "Password reset requested for email: {Email}";
         private const string PasswordResetRequestFailedMessage = "Password reset request failed. User not found for email: {Email}";
         private const string LogoutFailedInvalidTokenMessage = "Logout failed. Invalid token or blacklisted.";
-        private const string TokenValidationFailedMessage = "Token validation failed for token: {Token}";
+        //private const string TokenValidationFailedMessage = "Token validation failed for token: {Token}";
         private const string PasswordResetSuccessMessage = "Password successfully reset for user ID: {UserId}.";
         private const string Missing2FATokenMessage = "Login failed. 2FA token not provided for user: {Username}";
         private const string Invalid2FATokenMessage = "Login failed. Invalid 2FA token for user: {Username}";
