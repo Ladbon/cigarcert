@@ -52,8 +52,9 @@ namespace CigarCertifierAPI.Services
 
         private void LogEvent(string message, params object[] args)
         {
+            var protectedMessage = ProtectSensitiveInformation(message, "LogEvent");
             var protectedArgs = args.Select(arg => arg is string ? ProtectSensitiveInformation(arg.ToString(), "LogEvent") : arg).ToArray();
-            _logger.LogInformation(message, protectedArgs);
+            _logger.LogInformation(protectedMessage, protectedArgs);
         }
 
         private void LogWarning(string message, params object[] args)
@@ -66,7 +67,7 @@ namespace CigarCertifierAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while logging a warning: {Message}", message);
+                _logger.LogError(ex, "An error occurred while logging a warning: {Message}", ProtectSensitiveInformation(message, "LogWarning"));
             }
         }
 
@@ -79,12 +80,13 @@ namespace CigarCertifierAPI.Services
         {
             try
             {
+                var protectedMessage = ProtectSensitiveInformation(message, "LogDebug");
                 var protectedArgs = args.Select(arg => arg is string ? ProtectSensitiveInformation(arg.ToString(), "LogDebug") : arg).ToArray();
-                _logger.LogDebug(message, protectedArgs);
+                _logger.LogDebug(protectedMessage, protectedArgs);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while logging a debug message: {Message}", message);
+                _logger.LogError(ex, "An error occurred while logging a debug message: {Message}", ProtectSensitiveInformation(message, "LogDebug"));
             }
         }
 
