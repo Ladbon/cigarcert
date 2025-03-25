@@ -60,8 +60,9 @@ namespace CigarCertifierAPI.Services
         {
             try
             {
+                var protectedMessage = ProtectSensitiveInformation(message, "LogWarning");
                 var protectedArgs = args.Select(arg => arg is string ? ProtectSensitiveInformation(arg.ToString(), "LogWarning") : arg).ToArray();
-                _logger.LogWarning(message, protectedArgs);
+                _logger.LogWarning(protectedMessage, protectedArgs);
             }
             catch (Exception ex)
             {
