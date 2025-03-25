@@ -53,7 +53,7 @@ namespace CigarCertifierAPI.Services
         {
             try
             {
-                _logger.LogWarning(message, args);
+                _logger.LogWarning(RedactSensitiveData(message), args);
             }
             catch (Exception ex)
             {
@@ -249,6 +249,12 @@ namespace CigarCertifierAPI.Services
                     _logger.LogWarning("Validation error on {Key}: {ErrorMessage}", modelStateEntry.Key, error.ErrorMessage);
                 }
             }
+        }
+        private string RedactSensitiveData(string message)
+        {
+            // Implement redaction logic here
+            // For example, replace email addresses with [REDACTED]
+            return message.Replace("email", "[REDACTED]");
         }
     }
 }
