@@ -21,50 +21,14 @@ A modern Angular-based web application for cigar certification and authenticatio
 ## Development Setup
 
 ### Prerequisites
-- Node.js (v18+)
+- Node.js (v22.11+)
 - Angular CLI (v19+)
 - A running instance of the Cigar Certifier API
 
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/cigar-certifier-app.git
-   cd cigar-certifier-app
-   ```
-2. Install dependencies:
-    npm install
-3. ```markdown
-# Cigar Certifier Application
-
-A modern Angular-based web application for cigar certification and authentication with enterprise-grade security features.
-
-## Features
-
-### Authentication & Security
-- 🔒 Multi-factor authentication with TOTP support
-- 🔑 Secure JWT-based authentication with HttpOnly cookies
-- 📱 Mobile-friendly authentication flows
-- 🛡️ Protection against brute force attacks with rate limiting
-- ⏱️ Intelligent session management with idle timeout warnings
-- 🔄 Automatic token refresh for seamless user experience
-
-### User Management
-- 📝 User registration with email verification
-- 🔐 Secure password reset workflows
-- 👤 Self-service profile management
-- 📧 Email notifications for security events
-
-## Development Setup
-
-### Prerequisites
-- Node.js (v18+)
-- Angular CLI (v19+)
-- A running instance of the Cigar Certifier API
-
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/cigar-certifier-app.git
+   git clone https://github.com/ladbon/cigar-certifier-app.git
    cd cigar-certifier-app
    ```
 
@@ -127,6 +91,22 @@ This creates optimized production files in the dist directory, ready for deploym
 - ✅ Automatic session termination on password reset
 - ✅ Comprehensive error handling with user-friendly messages
 - ✅ Progressive security with opt-in 2FA
+
+## Frontend-Backend Security Integration
+Token Management
+HTTP interceptors attach authentication tokens to requests
+Automatic token refresh occurs before expiration
+Auth guard prevents access to protected routes
+Environment Configuration
+Production configuration removes debug information and optimizes security:
+
+// environment.prod.ts example
+export const environment = {
+  production: true,
+  apiUrl: '/api',
+  tokenRefreshInterval: 240000, // 4 minutes
+  sessionTimeout: 1800000 // 30 minutes
+};
 
 ## License
 

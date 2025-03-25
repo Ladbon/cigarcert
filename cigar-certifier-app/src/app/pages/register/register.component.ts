@@ -1,8 +1,8 @@
 // register.component.ts
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, SecurityContext } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
-import { catchError, finalize, tap } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { of, timer } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -44,12 +44,10 @@ export class RegisterComponent implements OnDestroy {
   }
 
   validateInput(input: string): string {
-    // Basic sanitization - strip HTML tags
-    return input.replace(/<[^>]*>/g, '');
+    return this.sanitizer.sanitize(SecurityContext.HTML, input) || '';
   }
 
   private isValidUsername(username: string): boolean {
-    // Match backend validation exactly
     return /^[a-zA-Z0-9]{4,20}$/.test(username);
   }
   
@@ -94,13 +92,8 @@ export class RegisterComponent implements OnDestroy {
       return;
     }
     
-    if (this.username.length < 4 || this.username.length > 20) {
-      this.error = `Username must be between 4 and 20 characters (current: ${this.username.length})`;
-      return;
-    }
-    
-    if (!/^[a-zA-Z0-9]+$/.test(this.username)) {
-      this.error = "Username can only contain letters and numbers (no spaces or special characters)";
+    if (!this.isValidUsername(this.username)) {
+      this.error = "Username must be 4-20 characters and can only contain letters and numbers";
       return;
     }
     

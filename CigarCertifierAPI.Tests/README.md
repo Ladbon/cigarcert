@@ -29,31 +29,10 @@ dotnet test
 2. Use `[Fact]` for unit tests or `[Theory]` with test data.
 3. Utilize `Moq` to mock dependencies as needed.
 
-## Configuration for Tests
-Test Settings
-Create a testsettings.json file:
-
-{
-  "ConnectionStrings": {
-    "TestConnection": "Data Source=:memory:"
-  },
-  "JwtSettings": {
-    "Issuer": "TestIssuer",
-    "Audience": "TestAudience",
-    "ExpiryInMinutes": 10,
-    "SecretKey": "test-secret-key-for-development-only"
-  }
-}
-
-## Using Test User Secrets
-For sensitive test data:
-dotnet user-secrets set "TestApiKey" "your-test-api-key" --project CigarCertifierAPI.Tests
-
 ## Notes
 
-Ensure the API project is running if integration tests depend on it.
-Keep tests independent and repeatable.
-Do not commit test credentials to source control.
+- Ensure the API project is running if integration tests depend on it.
+- Keep tests independent and repeatable.
 
 ## License
 

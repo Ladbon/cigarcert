@@ -129,7 +129,7 @@ export class AuthService {
         let errorType: string;
 
         if (error.status === 0) {
-// Network error (offline, server down, CORS issue)
+          // Network error (offline, server down, CORS issue)
           errorMessage = 'Cannot connect to the server. Please check your connection.';
           errorType = 'network_error';
         } else if (error.status === 401) {
@@ -140,18 +140,14 @@ export class AuthService {
             errorMessage = 'Invalid username or password.';
             errorType = 'invalid_credentials';
           }
-        } else if (error// Only general validation errors now - not 2FA required
-.status === 400) {
-// Only general validation errors now - not 2FA required
+        } else if (error.status === 400) {
+          // Only general validation errors now - not 2FA required
           errorMessage = error.error?.errorMessage || 'Invalid login request.';
           errorType = 'validation_error';
         } else {
           errorMessage = 'An unexpected error occurred. Please try again later.';
           errorType = 'server_error';
         }
-
-// Log the error for debugging
-        console.error('Login error:', error);
 
         // Return a structured error
         return throwError(() => ({
