@@ -61,7 +61,8 @@ namespace CigarCertifierAPI.Services
                 throw new InvalidOperationException($"Email sending failed with status code: {response.StatusCode}. Response Body: {responseBody}");
             }
 
-            _logger.LogInformation("Email sent successfully to {RecipientEmail}", recipientEmail);
+            var sanitizedRecipientEmail = recipientEmail.Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "");
+            _logger.LogInformation("Email sent successfully to {RecipientEmail}", sanitizedRecipientEmail);
         }
     }
 
