@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
-
+using System.Web.Security;
+using System.Text;
 namespace CigarCertifierAPI.Services
 {
     public class LoggerService
@@ -44,20 +45,29 @@ namespace CigarCertifierAPI.Services
             _logger = logger;
         }
 
+        private string ProtectSensitiveInformation(string value, string type)
+        {
+            return Convert.ToBase64String(MachineKey.Protect(Encoding.UTF8.GetBytes(value), type));
+        }
+
         private void LogEvent(string message, params object[] args)
         {
-            _logger.LogInformation(message, args);
+            var protectedMessage = ProtectSensitiveInformation(message, "LogEvent");
+            var protectedArgs = args.Select(arg => arg is string ? ProtectSensitiveInformation(arg.ToString(), "LogEvent") : arg).ToArray();
+            _logger.LogInformation(protectedMessage, protectedArgs);
         }
 
         private void LogWarning(string message, params object[] args)
         {
             try
             {
-                _logger.LogWarning(message, args);
+                var protectedMessage = ProtectSensitiveInformation(message, "LogWarning");
+                var protectedArgs = args.Select(arg => arg is string ? ProtectSensitiveInformation(arg.ToString(), "LogWarning") : arg).ToArray();
+                _logger.LogWarning(protectedMessage, protectedArgs);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while logging a warning: {Message}", message);
+                _logger.LogError(ex, "An error occurred while logging a warning: {Message}", ProtectSensitiveInformation(message, "LogWarning"));
             }
         }
 
@@ -70,11 +80,13 @@ namespace CigarCertifierAPI.Services
         {
             try
             {
-                _logger.LogDebug(message, args);
+                var protectedMessage = ProtectSensitiveInformation(message, "LogDebug");
+                var protectedArgs = args.Select(arg => arg is string ? ProtectSensitiveInformation(arg.ToString(), "LogDebug") : arg).ToArray();
+                _logger.LogDebug(protectedMessage, protectedArgs);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while logging a debug message: {Message}", message);
+                _logger.LogError(ex, "An error occurred while logging a debug message: {Message}", ProtectSensitiveInformation(message, "LogDebug"));
             }
         }
 
