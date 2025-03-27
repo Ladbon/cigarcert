@@ -151,7 +151,7 @@ The Cigar Certifier Application is a modern, secure authentication platform buil
    ```
    Or explicitly update vite:
    ```bash
-   npm install vite@6.0.9 --save-exact
+   npm install vite@latest
    ```
 
 4. **Run development server**

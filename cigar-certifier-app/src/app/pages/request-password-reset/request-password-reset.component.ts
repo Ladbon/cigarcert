@@ -1,5 +1,5 @@
 // request-password-reset.component.ts
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -12,17 +12,27 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule, FormsModule]
 })
-export class RequestPasswordResetComponent {
+export class RequestPasswordResetComponent implements OnInit {
   email: string = '';
   error: string = '';
   message: string = '';
   isSubmitted: boolean = false;
   isSubmitting: boolean = false;
+  isLoggedIn: boolean = false;
 
   constructor(private authService: AuthService, private router: Router) {}
+  
+  ngOnInit(): void {
+    // Check if user is logged in
+    this.isLoggedIn = !!this.authService.currentUserValue;
+  }
 
   navigateToLogin(): void {
-    this.router.navigate(['/']);
+    if (this.isLoggedIn) {
+      this.router.navigate(['/profile']);
+    } else {
+      this.router.navigate(['/']);
+    }
   }
 
   onRequestReset(): void {

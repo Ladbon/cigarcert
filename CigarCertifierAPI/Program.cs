@@ -106,8 +106,8 @@ internal class Program
                     partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     factory: partition => new FixedWindowRateLimiterOptions
                     {
-                        PermitLimit = 50, // Max 5 attempts
-                        Window = TimeSpan.FromMinutes(15), // Per 15 minutes
+                        PermitLimit = 100, // Max 5 attempts
+                        Window = TimeSpan.FromMinutes(5), // Per 15 minutes
                         QueueLimit = 0,
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst
                     }));
@@ -180,7 +180,12 @@ internal class Program
 
                 options.Events = new JwtBearerEvents
                 {
-
+                    OnChallenge = context =>
+                    {
+                        ILogger<Program> logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogWarning("Authentication challenge triggered");
+                        return Task.CompletedTask;
+                    },
                     OnMessageReceived = context =>
                     {
                         // Check if token exists in the cookie
@@ -239,6 +244,8 @@ internal class Program
                     .WithOrigins(
                         "http://localhost:4200",
                         "https://localhost:4200",
+                        "http://localhost:5173", // Add Vite's default port
+                        "http://127.0.0.1:5173",
                         "http://your-production-domain.com",
                         "https://your-production-domain.com"
                     )

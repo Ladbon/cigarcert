@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, of, throwError, Subject } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { LoginResponseDto } from '../interfaces/login-response-interface';
 
@@ -99,6 +99,7 @@ export class AuthService {
     return this.http.post<LoginResponseDto>(`${this.baseUrl}/login`, payload, { withCredentials: true })
     .pipe(
       tap(response => {
+        console.log("Login successful, cookies should be set");
         // Reset attempts on success
         this.loginAttempts = 0;
         // Update user in localStorage if 2FA is not required
@@ -316,6 +317,18 @@ export class AuthService {
             message: 'Session expired. Please log in again.',
             type: 'session_expired'
           }));
+        })
+      );
+  }
+
+  verifyAuthStatus(): Observable<boolean> {
+    return this.http.get<any>(`${this.baseUrl}/verify-auth`, { withCredentials: true })
+      .pipe(
+        map(() => true),
+        catchError(() => {
+          // If verification fails, clear local state
+          this.updateCurrentUser(null);
+          return of(false);
         })
       );
   }
