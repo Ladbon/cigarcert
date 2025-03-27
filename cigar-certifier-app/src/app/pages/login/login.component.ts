@@ -31,7 +31,6 @@ export class LoginComponent {
 
   onLogin() {
     this.error = ''; // Clear previous errors
-
     if (!this.username || !this.password) {
       this.error = 'Username and password must be provided';
       return;
@@ -46,7 +45,6 @@ export class LoginComponent {
 
     this.authService.login(loginPayload).subscribe({
       next: (response) => {
-        console.log('Login response:', response);
     
         if (response.isTwoFactorRequired) {
           this.requireTwoFactor = true;
@@ -56,7 +54,6 @@ export class LoginComponent {
         }
       },
       error: (err) => {
-        console.error('Login error:', err);
         this.error = err.message;
         
         // Handle 2FA required case

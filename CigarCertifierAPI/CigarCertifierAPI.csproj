@@ -33,7 +33,11 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
-	
+
+	<ItemGroup>
+		<None Remove="docker\init-db.bak" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Azure.Core" Version="1.45.0" />
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
@@ -78,6 +82,10 @@
 			<Generator>ResXFileCodeGenerator</Generator>
 			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="docker\" />
 	</ItemGroup>
 
 </Project>

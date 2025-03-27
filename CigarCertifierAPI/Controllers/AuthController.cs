@@ -64,7 +64,7 @@ namespace CigarCertifierAPI.Controllers
             // Check for existing username
             if (await _dbContext.Users.AnyAsync(u => u.Username == model.Username))
             {
-                _loggerService.LogRegistrationFailed(model.Username);
+                _loggerService.LogRegistrationFailed();
                 ModelState.AddModelError("Username", "Username is already taken.");
                 return BadRequest(ModelState);
             }
@@ -72,7 +72,7 @@ namespace CigarCertifierAPI.Controllers
             // Check for existing email
             if (await _dbContext.Users.AnyAsync(u => u.Email == model.Email))
             {
-                _loggerService.LogRegistrationFailed(model.Email);
+                _loggerService.LogRegistrationFailed();
                 ModelState.AddModelError("Email", "Email is already registered.");
                 return BadRequest(ModelState);
             }
@@ -112,7 +112,7 @@ namespace CigarCertifierAPI.Controllers
                 _loggerService.LogError(ex, "Failed to send email confirmation code to {Email}", user.Email);
             }
 
-            _loggerService.LogRegistrationSuccess(model.Username);
+            _loggerService.LogRegistrationSuccess();
             return Ok(new MessageResponseDto { Message = "Please check your email for the confirmation code." });
         }
 
@@ -176,7 +176,7 @@ namespace CigarCertifierAPI.Controllers
             }
             catch (Exception ex)
             {
-                _loggerService.LogUnexpectedTwoFactorError(ex.Message);
+                _loggerService.LogUnexpectedTwoFactorError();
                 return StatusCode(500, "An unexpected error occurred.");
             }
         }
@@ -226,7 +226,7 @@ namespace CigarCertifierAPI.Controllers
 
                 if (string.IsNullOrEmpty(user.TwoFactorSecret))
                 {
-                    _loggerService.Log2FAActivationFailed(userId, "2FA has not been set up for this user.");
+                    _loggerService.Log2FAActivationFailed(userId);
                     return BadRequest(new MessageResponseDto { Message = "2FA has not been set up for this user." });
                 }
 
@@ -237,7 +237,7 @@ namespace CigarCertifierAPI.Controllers
 
                 if (!isValid)
                 {
-                    _loggerService.LogInvalid2FAToken(user.Username);
+                    _loggerService.LogInvalid2FAToken();
                     return BadRequest(new MessageResponseDto { Message = "Invalid verification code." });
                 }
 
@@ -317,12 +317,12 @@ namespace CigarCertifierAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            _loggerService.LogLoginAttempt(model.Username);
+            _loggerService.LogLoginAttempt();
 
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == model.Username);
             if (user == null || !PasswordHelper.VerifyPassword(model.Password, user.PasswordHash))
             {
-                _loggerService.LogLoginFailed(model.Username);
+                _loggerService.LogLoginAttempt();
                 return Unauthorized(new ErrorResponseDto { ErrorMessage = "Invalid credentials." });
             }
 
@@ -335,20 +335,19 @@ namespace CigarCertifierAPI.Controllers
             {
                 if (string.IsNullOrWhiteSpace(model.TwoFactorToken))
                 {
-                    _loggerService.LogMissing2FAToken(model.Username);
+                    _loggerService.LogMissing2FAToken();
                     return Ok(new LoginResponseDto
                     {
                         IsTwoFactorRequired = true,
-                        Token = null,
-                        Message = "Two-factor authentication is required.",
-                        ExpiresAt = null
+                        Message = "Two-factor authentication is required."
                     });
                 }
 
+                // Validate the 2FA token
                 var totp = new Totp(Base32Encoding.ToBytes(user.TwoFactorSecret));
                 if (!totp.VerifyTotp(model.TwoFactorToken, out _))
                 {
-                    _loggerService.LogInvalid2FAToken(model.Username);
+                    _loggerService.LogInvalid2FAToken();
                     return Unauthorized(new ErrorResponseDto { ErrorMessage = "Invalid 2FA token." });
                 }
             }
@@ -395,7 +394,7 @@ namespace CigarCertifierAPI.Controllers
             // Set HttpOnly cookie
             SetAuthCookie(token, expiry);
 
-            _loggerService.LogLoginSuccess(model.Username);
+            _loggerService.LogLoginSuccess();
             return Ok(new LoginResponseDto
             {
                 IsTwoFactorRequired = false,
@@ -501,12 +500,12 @@ namespace CigarCertifierAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            _loggerService.LogPasswordResetRequested(model.Email);
+            _loggerService.LogPasswordResetRequested();
 
             User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
             if (user == null)
             {
-                _loggerService.LogPasswordResetRequestFailed(model.Email);
+                _loggerService.LogPasswordResetRequestFailed();
                 return Ok("If the user exists, a password reset email has been sent.");
             }
 
@@ -526,7 +525,7 @@ namespace CigarCertifierAPI.Controllers
             }
 
             string resetToken = GuidHelper.GenerateGuid();
-            _loggerService.LogGeneratedResetToken(resetToken, user.Id);
+            _loggerService.LogGeneratedResetToken(user.Id);
 
             user.PasswordResetToken = resetToken;
             user.PasswordResetTokenExpiry = DateTimeHelper.GetUtcNow().AddHours(1);
@@ -551,7 +550,7 @@ namespace CigarCertifierAPI.Controllers
             catch (Exception ex)
             {
                 _loggerService.LogError(ex, "Failed to send email confirmation code to [REDACTED EMAIL]");
-                _loggerService.LogGeneratedResetToken(resetToken, user.Id);
+                _loggerService.LogGeneratedResetToken(user.Id);
             }
 
             return Ok(new MessageResponseDto { Message = "If the user exists, a password reset email has been sent." });
@@ -575,11 +574,11 @@ namespace CigarCertifierAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            _loggerService.LogPasswordResetAttempt(model.Token);
+            _loggerService.LogPasswordResetAttempt();
 
             if (string.IsNullOrWhiteSpace(model.Token) || string.IsNullOrWhiteSpace(model.NewPassword))
             {
-                _loggerService.LogPasswordResetFailed(model.Token);
+                _loggerService.LogPasswordResetFailed();
                 return BadRequest("Both token and new password are required.");
             }
 
@@ -587,7 +586,7 @@ namespace CigarCertifierAPI.Controllers
 
             if (user == null || DateTimeHelper.IsExpired(user.PasswordResetTokenExpiry))
             {
-                _loggerService.LogPasswordResetFailed(model.Token);
+                _loggerService.LogPasswordResetFailed();
                 return BadRequest("Invalid or expired token.");
             }
 

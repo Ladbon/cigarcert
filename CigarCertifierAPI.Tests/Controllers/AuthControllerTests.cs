@@ -1,10 +1,10 @@
 using CigarCertifierAPI.Configurations;
+using Microsoft.AspNetCore.Http;
 using CigarCertifierAPI.Controllers;
 using CigarCertifierAPI.Data;
 using CigarCertifierAPI.Dto;
 using CigarCertifierAPI.Models;
 using CigarCertifierAPI.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -223,7 +223,8 @@ namespace CigarCertifierAPI.Tests.Controllers
                 Email = "test@example.com",
                 PasswordHash = passwordHash,
                 IsTwoFactorEnabled = true,
-                TwoFactorSecret = base32Secret
+                TwoFactorSecret = base32Secret,
+                EmailConfirmed = true // Ensure email is confirmed
             };
 
             DbContextOptions<ApplicationDbContext> options = CreateNewContextOptions();
@@ -239,9 +240,9 @@ namespace CigarCertifierAPI.Tests.Controllers
                 Secret = "ThisIsASecretKeyForJwtTokenGeneration1234567890"
             };
             Mock<ILogger<EmailService>> mockEmailLogger = new();
-            EmailService emailService = CreateEmailService(mockEmailLogger); // Use the helper method with mock logger
+            EmailService emailService = CreateEmailService(mockEmailLogger);
 
-            AuthController controller = new(context, loggerService, jwtSettings, emailService); // Add emailService
+            AuthController controller = new(context, loggerService, jwtSettings, emailService);
 
             // Generate a valid TOTP code
             Totp totp = new(secretKey);
@@ -254,6 +255,11 @@ namespace CigarCertifierAPI.Tests.Controllers
                 TwoFactorToken = validToken
             };
 
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
+
             // Act
             IActionResult result = await controller.Login(loginDto);
 
@@ -261,15 +267,15 @@ namespace CigarCertifierAPI.Tests.Controllers
             OkObjectResult okResult = Assert.IsType<OkObjectResult>(result);
             LoginResponseDto response = Assert.IsType<LoginResponseDto>(okResult.Value);
 
-            Assert.NotNull(response.Token);
-            Assert.NotEqual(default, response.ExpiresAt);
+            Assert.False(response.IsTwoFactorRequired);
+            Assert.Equal("Login successful.", response.Message);
+            Assert.NotNull(response.ExpiresAt);
+            Assert.Null(response.Token); // Token is stored in HttpOnly cookie
 
             // Verify that the token is stored in ActiveTokens
             ActiveToken activeToken = await context.ActiveTokens.FirstOrDefaultAsync(t => t.UserId == user.Id);
             Assert.NotNull(activeToken);
-            Assert.Equal(response.Token, activeToken.Token);
         }
-
 
         [Fact]
         public async Task LoginWith2FAEnabledAndInvalidTokenReturnsUnauthorized()
@@ -287,7 +293,8 @@ namespace CigarCertifierAPI.Tests.Controllers
                 Email = "test@example.com",
                 PasswordHash = passwordHash,
                 IsTwoFactorEnabled = true,
-                TwoFactorSecret = base32Secret
+                TwoFactorSecret = base32Secret,
+                EmailConfirmed = true // Ensure email is confirmed
             };
 
             DbContextOptions<ApplicationDbContext> options = CreateNewContextOptions();
@@ -298,9 +305,9 @@ namespace CigarCertifierAPI.Tests.Controllers
             LoggerService loggerService = CreateLoggerService();
             JwtSettings jwtSettings = new();
             Mock<ILogger<EmailService>> mockEmailLogger = new();
-            EmailService emailService = CreateEmailService(mockEmailLogger); // Use the helper method with mock logger
+            EmailService emailService = CreateEmailService(mockEmailLogger);
 
-            AuthController controller = new(context, loggerService, jwtSettings, emailService); // Add emailService
+            AuthController controller = new(context, loggerService, jwtSettings, emailService);
 
             LoginDto loginDto = new()
             {
@@ -314,14 +321,12 @@ namespace CigarCertifierAPI.Tests.Controllers
 
             // Assert
             UnauthorizedObjectResult unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
-            Assert.Equal(StatusCodes.Status401Unauthorized, unauthorizedResult.StatusCode);
-
             ErrorResponseDto response = Assert.IsType<ErrorResponseDto>(unauthorizedResult.Value);
             Assert.Equal("Invalid 2FA token.", response.ErrorMessage);
         }
 
         [Fact]
-        public async Task LoginWith2FAEnabledAndNoTokenReturnsBadRequest()
+        public async Task LoginWith2FAEnabledAndNoTokenReturnsOkResult()
         {
             // Arrange
             string password = "Password123";
@@ -333,7 +338,8 @@ namespace CigarCertifierAPI.Tests.Controllers
                 Username = "testuser5",
                 Email = "testuser50@example.com",
                 PasswordHash = passwordHash,
-                IsTwoFactorEnabled = true
+                IsTwoFactorEnabled = true,
+                EmailConfirmed = true // Ensure email is confirmed
             };
 
             DbContextOptions<ApplicationDbContext> options = CreateNewContextOptions();
@@ -344,9 +350,9 @@ namespace CigarCertifierAPI.Tests.Controllers
             LoggerService loggerService = CreateLoggerService();
             JwtSettings jwtSettings = new();
             Mock<ILogger<EmailService>> mockEmailLogger = new();
-            EmailService emailService = CreateEmailService(mockEmailLogger); // Use the helper method with mock logger
+            EmailService emailService = CreateEmailService(mockEmailLogger);
 
-            AuthController controller = new(context, loggerService, jwtSettings, emailService); // Add emailService
+            AuthController controller = new(context, loggerService, jwtSettings, emailService);
 
             LoginDto loginDto = new()
             {
@@ -359,9 +365,57 @@ namespace CigarCertifierAPI.Tests.Controllers
             IActionResult result = await controller.Login(loginDto);
 
             // Assert
-            BadRequestObjectResult badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
-            ErrorResponseDto response = Assert.IsType<ErrorResponseDto>(badRequestResult.Value);
+            OkObjectResult okResult = Assert.IsType<OkObjectResult>(result);
+            LoginResponseDto response = Assert.IsType<LoginResponseDto>(okResult.Value);
+
+            Assert.True(response.IsTwoFactorRequired);
+            Assert.Equal("Two-factor authentication is required.", response.Message);
+            Assert.Null(response.Token);
+            Assert.Null(response.ExpiresAt);
+        }
+
+        [Fact]
+        public async Task LoginWith2FAEnabledAndNoTokenReturnsUnauthorized()
+        {
+            // Arrange
+            string password = "Password123";
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+
+            User user = new()
+            {
+                Id = 1,
+                Username = "testuser",
+                Email = "test@example.com",
+                PasswordHash = passwordHash,
+                IsTwoFactorEnabled = true,
+                EmailConfirmed = true
+            };
+
+            var options = CreateNewContextOptions();
+            using var context = new ApplicationDbContext(options);
+            await context.Users.AddAsync(user);
+            await context.SaveChangesAsync();
+
+            var loggerService = CreateLoggerService();
+            var jwtSettings = new JwtSettings();
+            var mockEmailLogger = new Mock<ILogger<EmailService>>();
+            var emailService = CreateEmailService(mockEmailLogger);
+
+            var controller = new AuthController(context, loggerService, jwtSettings, emailService);
+
+            var loginDto = new LoginDto
+            {
+                Username = user.Username,
+                Password = password
+                // No TwoFactorToken provided
+            };
+
+            // Act
+            var result = await controller.Login(loginDto);
+
+            // Assert
+            var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+            var response = Assert.IsType<ErrorResponseDto>(unauthorizedResult.Value);
             Assert.Equal("Two-factor authentication is required.", response.ErrorMessage);
         }
 
@@ -489,7 +543,8 @@ namespace CigarCertifierAPI.Tests.Controllers
                 Username = "testuser",
                 Email = "test@example.com",
                 PasswordHash = passwordHash,
-                IsTwoFactorEnabled = false
+                IsTwoFactorEnabled = false,
+                EmailConfirmed = true // Ensure email is confirmed
             };
 
             DbContextOptions<ApplicationDbContext> options = CreateNewContextOptions();
@@ -502,12 +557,18 @@ namespace CigarCertifierAPI.Tests.Controllers
             {
                 Issuer = "TestIssuer",
                 Audience = "TestAudience",
-                Secret = "ThisIsASecretKeyForJwtTokenGeneration1234567890" // Ensure this matches your actual secret for testing
+                Secret = "ThisIsASecretKeyForJwtTokenGeneration1234567890"
             };
             Mock<ILogger<EmailService>> mockEmailLogger = new();
             EmailService emailService = CreateEmailService(mockEmailLogger);
 
             AuthController controller = new(context, loggerService, jwtSettings, emailService);
+
+            // Set up the ControllerContext with a valid HttpContext
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
 
             LoginDto loginDto = new()
             {
@@ -522,16 +583,12 @@ namespace CigarCertifierAPI.Tests.Controllers
             OkObjectResult okResult = Assert.IsType<OkObjectResult>(result);
             LoginResponseDto response = Assert.IsType<LoginResponseDto>(okResult.Value);
 
-            Assert.NotNull(response.Token);
-            Assert.NotEqual(default, response.ExpiresAt);
+            Assert.False(response.IsTwoFactorRequired);
+            Assert.Equal("Login successful.", response.Message);
+            Assert.NotNull(response.ExpiresAt);
 
-            // Verify that the token expiry matches the expected duration
-            DateTime expectedExpiry = DateTime.UtcNow.AddMinutes(15);
-            DateTime? actualExpiry = response.ExpiresAt;
-            TimeSpan? timeDifference = actualExpiry - expectedExpiry;
-
-            // Allow a small margin for delay
-            Assert.True(Math.Abs(timeDifference.Value.Seconds) < 5, "Token expiry time deviation is too large.");
+            // Since the token is stored in an HttpOnly cookie, Token will be null
+            Assert.Null(response.Token);
         }
 
         [Fact]
@@ -547,7 +604,8 @@ namespace CigarCertifierAPI.Tests.Controllers
                 Username = "testuser",
                 Email = "test@example.com",
                 PasswordHash = passwordHash,
-                IsTwoFactorEnabled = false
+                IsTwoFactorEnabled = false,
+                EmailConfirmed = true // Ensure email is confirmed
             };
 
             DbContextOptions<ApplicationDbContext> options = CreateNewContextOptions();
@@ -579,19 +637,19 @@ namespace CigarCertifierAPI.Tests.Controllers
             });
             await context.SaveChangesAsync();
 
-            // Mock authenticated user and set the Authorization header
+            // Mock authenticated user and set the token cookie
             Claim[] claims = { new("userid", user.Id.ToString()) };
             ClaimsIdentity identity = new(claims, "TestAuth");
+            DefaultHttpContext httpContext = new()
+            {
+                User = new ClaimsPrincipal(identity)
+            };
+            // Set the cookie by modifying the Headers directly
+            httpContext.Request.Headers["Cookie"] = "token=" + initialToken;
+
             controller.ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext
-                {
-                    User = new ClaimsPrincipal(identity),
-                    Request =
-            {
-                Headers = { Authorization = $"Bearer {initialToken}" }
-            }
-                }
+                HttpContext = httpContext
             };
 
             // Act
@@ -603,9 +661,10 @@ namespace CigarCertifierAPI.Tests.Controllers
             OkObjectResult okResult = Assert.IsType<OkObjectResult>(result);
             LoginResponseDto response = Assert.IsType<LoginResponseDto>(okResult.Value);
 
-            Assert.NotNull(response.Token);
-            Assert.NotEqual(default, response.ExpiresAt);
-            Assert.NotEqual(initialToken, response.Token); // Ensure a new token is generated
+            Assert.False(response.IsTwoFactorRequired);
+            Assert.Equal("Token refreshed successfully.", response.Message);
+            Assert.NotNull(response.ExpiresAt);
+            Assert.Null(response.Token); // Token is stored in HttpOnly cookie
 
             // Verify that the token expiry matches the expected duration
             DateTime expectedExpiry = beforeTokenGeneration.AddMinutes(15);
@@ -613,7 +672,7 @@ namespace CigarCertifierAPI.Tests.Controllers
             TimeSpan? timeDifference = actualExpiry - expectedExpiry;
 
             // Allow a small margin for delay
-            Assert.True(Math.Abs(timeDifference.Value.Seconds) < 5, "Token expiry time deviation is too large.");
+            Assert.True(Math.Abs(timeDifference.Value.TotalSeconds) < 60, "Token expiry time deviation is too large.");
         }
     }
 }

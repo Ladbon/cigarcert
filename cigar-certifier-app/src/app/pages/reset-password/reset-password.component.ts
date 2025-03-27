@@ -29,10 +29,11 @@ export class ResetPasswordComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       this.token = params['token'] || '';
       if (!this.token) {
-        console.error('No token provided in URL');
-        // Optionally redirect to error page
-      } else {
-        console.log('Token found:', this.token);
+        // Add missing logic to handle missing token
+        this.error = 'Missing password reset token. Please request a new password reset link.';
+        setTimeout(() => {
+          this.router.navigate(['/request-password-reset']);
+        }, 3000);
       }
     });
   }

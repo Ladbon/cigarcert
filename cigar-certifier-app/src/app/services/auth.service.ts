@@ -164,6 +164,8 @@ export class AuthService {
       .pipe(
         tap(() => {
           this.cleanupSession();
+          // Explicitly navigate to login after logout
+          this.router.navigate(['/login']);
         }),
         catchError(error => {
           // Even if the server request fails, clean up local session

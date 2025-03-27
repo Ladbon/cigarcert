@@ -42,10 +42,7 @@ export class RequestPasswordResetComponent {
         this.error = '';
         this.isSubmitted = true; // Mark as submitted on success
         this.isSubmitting = false;
-        
-        // For debugging
-        console.log('Form submitted successfully', { isSubmitted: this.isSubmitted });
-      },
+              },
       error: (err) => {
         // Even on error, we want to treat this as a success for security
         // This prevents revealing if an email exists in the system
@@ -54,8 +51,6 @@ export class RequestPasswordResetComponent {
         this.isSubmitted = true; // Mark as submitted even on error
         this.isSubmitting = false;
         
-        // For debugging
-        console.log('Form submission had error but treating as success', { isSubmitted: this.isSubmitted });
       }
     });
   }

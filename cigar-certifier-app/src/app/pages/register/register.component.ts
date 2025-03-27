@@ -86,58 +86,78 @@ export class RegisterComponent implements OnDestroy {
     this.message = '';
     this.error = '';
     
-    // Check username
-    if (!this.username) {
-      this.error = "Username is required";
-      return;
+    try {
+      // Check username
+      if (!this.username) {
+        this.error = "Username is required";
+        return;
+      }
+      
+      if (!this.isValidUsername(this.username)) {
+        this.error = "Username must be 4-20 characters and can only contain letters and numbers";
+        return;
+      }
+      
+      // Check email
+      if (!this.email) {
+        this.error = "Email is required";
+        return;
+      }
+      
+      if (!this.isValidEmail(this.email)) {
+        this.error = "Please enter a valid email address";
+        return;
+      }
+  
+      const passwordCheck = this.validatePassword(this.password);
+      if (!passwordCheck.isValid) {
+        this.error = passwordCheck.message;
+        return;
+      }
+  
+      this.authService.register(this.username, this.email, this.password).pipe(
+        tap((response: any) => {
+          this.message = response.message || 'Registration successful! Please check your email for the confirmation code.';
+          this.error = '';
+          this.showConfirmationField = true;
+          this.startTimer();
+          this.startResendTimer();
+        }),
+        catchError((error) => {
+          console.error('Registration error:', error);
+          return this.handleError(error);
+        })
+      ).subscribe();
+    } catch (err) {
+      this.error = 'An unexpected error occurred. Please try again.';
+      console.error('Registration error:', err);
     }
-    
-    if (!this.isValidUsername(this.username)) {
-      this.error = "Username must be 4-20 characters and can only contain letters and numbers";
-      return;
-    }
-    
-    // Check email
-    if (!this.email) {
-      this.error = "Email is required";
-      return;
-    }
-    
-    if (!this.isValidEmail(this.email)) {
-      this.error = "Please enter a valid email address";
-      return;
-    }
-
-    const passwordCheck = this.validatePassword(this.password);
-    if (!passwordCheck.isValid) {
-      this.error = passwordCheck.message;
-      return;
-    }
-
-    this.authService.register(this.username, this.email, this.password).pipe(
-      tap((response: any) => {
-        this.message = response.message || 'Registration successful! Please check your email for the confirmation code.';
-        this.error = '';
-        this.showConfirmationField = true;
-        this.startTimer();
-        this.startResendTimer();
-      }),
-      catchError((error) => this.handleError(error))
-    ).subscribe();
   }
 
   onConfirmEmail(): void {
+    if (!this.confirmationCode || this.confirmationCode.length !== 6) {
+      this.error = 'Please enter the 6-digit confirmation code';
+      return;
+    }
+    
     this.message = '';
     this.error = '';
-
+    
+    // Add loading state
+    let isSubmitting = true;
+    
     this.authService.confirmEmail(this.email, this.confirmationCode).pipe(
       tap((response: any) => {
+        isSubmitting = false;
         this.message = 'Code confirmed and account created!';
         this.error = '';
         this.showConfirmationField = false;
         this.registrationComplete = true; // Show login button
       }),
-      catchError((error) => this.handleError(error))
+      catchError((error) => {
+        isSubmitting = false;
+        return this.handleError(error);
+      })
     ).subscribe();
   }
 
