@@ -54,7 +54,7 @@ namespace CigarCertifierAPI.Services
         {
             try
             {
-                _logger.LogWarning(message, args);
+                _logger.LogWarning(RedactSensitiveData(message), args);
             }
             catch (Exception ex)
             {
@@ -253,6 +253,16 @@ namespace CigarCertifierAPI.Services
                         error.ErrorMessage);
                 }
             }
+        }
+        private string RedactSensitiveData(string message)
+        {
+            // Redact email addresses
+            message = System.Text.RegularExpressions.Regex.Replace(message, @"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "[REDACTED]");
+            // Redact tokens (assuming tokens are alphanumeric strings of a certain length)
+            message = System.Text.RegularExpressions.Regex.Replace(message, @"\b[a-zA-Z0-9]{32,}\b", "[REDACTED]");
+            // Redact usernames (assuming usernames are alphanumeric and between 3 and 20 characters)
+            message = System.Text.RegularExpressions.Regex.Replace(message, @"\b[a-zA-Z0-9]{3,20}\b", "[REDACTED]");
+            return message;
         }
     }
 }
