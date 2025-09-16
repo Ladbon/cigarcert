@@ -1,145 +1,224 @@
 # CigarCertifierAPI
 
-CigarCertifierAPI is a web API developed using ASP.NET Core (.NET 9) and C#. It provides functionalities for managing cigar certifications, manufacturers, 
-and includes robust authentication mechanisms with support for two-factor authentication (2FA) using Time-based One-Time Passwords (TOTP).
+CigarCertifierAPI is a web API built with **ASP.NET Core (.NET 9)** and **C#**. It provides endpoints for managing cigars, manufacturers, and certifications, with solid authentication including **JWT** and optional **Two-Factor Authentication (2FA)** via **TOTP** (QR code setup supported).
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+  - [Clone the Repository](#clone-the-repository)
+  - [Configure the Application](#configure-the-application)
+  - [Keys & Certificates](#keys--certificates)
+  - [Build & Run](#build--run)
+  - [API Documentation](#api-documentation)
+- [Usage](#usage)
+  - [Authentication](#authentication)
+  - [Password Management](#password-management)
+  - [Protected Resource Example](#protected-resource-example)
+- [Configuration Details](#configuration-details)
+- [Logging](#logging)
+- [Security Considerations](#security-considerations)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Features
 
-�	User Authentication: Secure user registration and login using JWT tokens with optional 2FA.
-�	Password Management: Secure password hashing, reset functionality, and validations.
-�	Cigar Management: CRUD operations for cigars, manufacturers, and certifications.
-�	Two-Factor Authentication (2FA): Enhances account security via TOTP, with QR code generation for easy setup.
-�	Security Enhancements:
-�	JWT token validation and blacklisting.
-�	Middleware for adding security-related HTTP headers.
-�	Rate limiting on sensitive endpoints to prevent brute-force attacks.
-�	Logging: Structured and centralized logging using LoggerService.
-�	API Documentation: Integrated Swagger/OpenAPI support for easy API exploration.
+- **User Authentication**: Secure registration and login using JWTs; optional 2FA.
+- **Password Management**: BCrypt hashing, reset flow, and validation.
+- **Cigar Management**: CRUD for cigars, manufacturers, and certifications.
+- **Two-Factor Authentication (2FA)**: TOTP support with QR code generation.
+- **Security Enhancements**:
+  - JWT validation and blacklisting.
+  - Middleware for security headers.
+  - Rate limiting on sensitive endpoints.
+- **Logging**: Structured logging via `LoggerService`.
+- **API Documentation**: Built-in Swagger / OpenAPI.
+
+---
 
 ## Prerequisites
 
-�	.NET 9 SDK
-�	Visual Studio 2022 or later
-�	SQL Server (or any compatible SQL database)
-�	SendGrid API Key (for sending emails)
+- .NET 9 SDK
+- Visual Studio 2022 (or VS Code + C# Dev Kit)
+- SQL Server (or compatible SQL database)
+- SendGrid API Key (for email delivery)
+
+---
 
 ## Getting Started
 
 ### Clone the Repository
 
+```bash
 git clone https://github.com/yourusername/cigar-certifier-api.git
 cd cigar-certifier-api
+```
 
 ### Configure the Application
 
-1.	Environment Variables:
-Create a .env file in the project root or set the following environment variables:
-SA_PASSWORD=
-JWT_SECRET=
-ConnectionStrings__DefaultConnection=Server=
-SENDGRID_API_KEY=
-EmailSettings__SenderEmail=
-EmailSettings__SenderName=
-Ensure the appsettings.json file has the correct configuration for JWT and email settings:
- 
-	   "Jwt": {
-     "Issuer": "CigarCertifierAPI",
-     "Audience": "CigarCertifierAPI",
-     "ExpiryMinutes": 30
-   },
-   "EmailSettings": {
-     "SenderEmail": "youremail@example.com",
-     "SenderName": "Your Name"
-   }
-    
-## 5. Keys and Certificates Setup Instructions
+1) **Environment Variables**
 
-## Setting Up Keys and Certificates
+Create a `.env` file in the project root **or** set these as environment variables / User Secrets:
 
-### JWT Signing Key
-  
-1. Generate a strong random key (at least 32 characters)
-   ���bash```
-   openssl rand -base64 32
+```env
+# Database
+ConnectionStrings__DefaultConnection=Server=YOUR_SQL_HOST;Database=CigarCertifier;User Id=...;Password=...;TrustServerCertificate=True;
 
-HTTPS Development Certificate
+# Auth
+JWT_SECRET=your-strong-32char-min-secret
+SA_PASSWORD=your-local-sa-password
+
+# Email (SendGrid)
+SENDGRID_API_KEY=SG.xxxxx
+EmailSettings__SenderEmail=youremail@example.com
+EmailSettings__SenderName=Your Name
+```
+
+2) **App Settings**
+
+Ensure your `appsettings.json` contains the relevant sections (values can be overridden by env vars):
+
+```json
+{
+  "Jwt": {
+    "Issuer": "CigarCertifierAPI",
+    "Audience": "CigarCertifierAPI",
+    "ExpiryMinutes": 30
+  },
+  "EmailSettings": {
+    "SenderEmail": "youremail@example.com",
+    "SenderName": "Your Name"
+  }
+}
+```
+
+> Tip (Windows dev): you can also use .NET User Secrets for local dev:
+>
+> ```bash
+> dotnet user-secrets set "JWT_SECRET" "your-strong-32char-min-secret" --project CigarCertifierAPI
+> ```
+
+### Keys & Certificates
+
+#### JWT Signing Key
+
+Generate a strong random key (min 32 chars):
+
+```bash
+openssl rand -base64 32
+```
+
+#### HTTPS Development Certificate
+
+```bash
 dotnet dev-certs https --clean
 dotnet dev-certs https --trust
+```
 
-Production SSL Certificates
-For production, you should use a valid SSL certificate from a trusted Certificate Authority.
+#### Production SSL Certificates
 
-Purchase or obtain a free certificate (e.g., Let's Encrypt)
-Configure in your hosting environment or:
-Production SSL Certificates
+Use a valid certificate from a trusted CA (e.g., Let’s Encrypt). Configure in your hosting environment or (for direct Kestrel hosting):
 
-For production, you should use a valid SSL certificate from a trusted Certificate Authority.
-# For Kestrel direct hosting
-dotnet run --urls="https://+:443;http://+:80" --certificatePath="/path/to/certificate.pfx" --certificatePassword="your-certificate-password"
+```bash
+dotnet run --urls="https://+:443;http://+:80"   --certificatePath="/path/to/certificate.pfx"   --certificatePassword="your-certificate-password"
+```
 
+### Build & Run
 
-### Build and Run the Application
+```bash
+# Restore packages
+dotnet restore
 
-1. Restore dependencies: dotnet restore
-2. Apply migrations: dotnet ef database update
-3. Run the application: dotnet run --project CigarCertifierAPI 
+# Apply EF Core migrations (ensure your connection string is set)
+dotnet ef database update
 
-The API should now be running at https://localhost:5001 or http://localhost:5000.
+# Run the API
+dotnet run --project CigarCertifierAPI
+```
 
-### Access the API Documentation
+By default, the API will be available at:
 
-Navigate to https://localhost:5001/swagger to access the Swagger UI and explore the API endpoints.
+- https://localhost:5001  
+- http://localhost:5000
+
+### API Documentation
+
+Open Swagger UI:
+
+- https://localhost:5001/swagger
+
+---
 
 ## Usage
 
-Endpoints Overview
+### Authentication
 
-	Authentication:
-�	POST /api/auth/register: Register a new user.
-�	POST /api/auth/login: Log in and receive a JWT token.
-�	DELETE /api/auth/logout: Log out and invalidate the current token.
-�	PATCH /api/auth/setup-2fa: Initiate 2FA setup (requires authentication).
-�	POST /api/auth/activate-2fa: Activate 2FA with the provided token.
-�	GET /api/auth/2fa-status: Check if 2FA is enabled.
+- `POST /api/auth/register` — Register a new user.
+- `POST /api/auth/login` — Log in and receive a JWT.
+- `DELETE /api/auth/logout` — Log out and invalidate the current token.
+- `PATCH /api/auth/setup-2fa` — Initiate 2FA setup (requires auth; returns provisioning info/QR).
+- `POST /api/auth/activate-2fa` — Activate 2FA with the provided TOTP code.
+- `GET /api/auth/2fa-status` — Check if 2FA is enabled.
 
-	Password Management:
-�	POST /api/auth/request-password-reset: Request a password reset email.
-�	POST /api/auth/reset-password: Reset the password using the token provided.
+### Password Management
 
-	Protected Resource Example:
-�	GET /api/auth/protected: Access a protected endpoint (requires authentication).
+- `POST /api/auth/request-password-reset` — Send password reset email.
+- `POST /api/auth/reset-password` — Reset password using the received token.
 
-### Configuration Details
+### Protected Resource Example
 
-�	JWT Settings:
-Ensure that the JWT_SECRET environment variable or configuration setting is set and is at least 32 characters long for security.
-�	Email Settings:
-Update the EmailSettings section in appsettings.json or use environment variables to configure the sender's email and name. The application uses SendGrid for sending emails.
+- `GET /api/auth/protected` — Example secured endpoint (requires valid JWT).
 
-### Logging
+---
 
-The application uses the built-in logging framework with LoggerService to log important events and errors. Logs can be configured in appsettings.json under the Logging section.
+## Configuration Details
 
-### Security Considerations
-�	Password Security: Passwords are hashed using BCrypt before storage.
-�	2FA: Users can enable 2FA to add an extra layer of security.
-�	Token Management: Tokens are validated, and blacklisted tokens are stored to prevent reuse.
-�	Rate Limiting: Sensitive endpoints have rate limiting to prevent abuse.
+- **JWT Settings**: `JWT_SECRET` MUST be at least 32 characters. Set via env vars or secrets.
+- **Email Settings**: Configure `EmailSettings` or env vars. Uses SendGrid for outbound mail.
+
+---
+
+## Logging
+
+The API uses the built-in .NET logging abstractions with a `LoggerService` wrapper for structured, centralized logs. Configure log levels in `appsettings.json` under `Logging`.
+
+---
+
+## Security Considerations
+
+- **Password Security**: Passwords hashed with **BCrypt** before storage.
+- **2FA**: Optional TOTP-based second factor to protect accounts.
+- **Token Management**: JWT validation enforced; blacklisted tokens blocked from reuse.
+- **Rate Limiting**: Applied to sensitive endpoints to mitigate brute-force attacks.
+- **Security Headers**: Middleware adds recommended HTTP security headers.
+
+---
 
 ## Testing
 
-Instructions for running tests are available in the [CigarCertifierAPI.Tests README](./CigarCertifierAPI.Tests/README.md).
+See the test project guide here: [CigarCertifierAPI.Tests/README.md](./CigarCertifierAPI.Tests/README.md)
+
+---
 
 ## Contributing
 
-Contributions are welcome! To contribute:
-1.	Fork the repository.
-2.	Create a new branch for your feature or bug fix.
-3.	Commit your changes with clear commit messages.
-4.	Open a pull request describing your changes.
-Please ensure all new code includes appropriate tests and documentation.
+Contributions are welcome!
 
+1. Fork the repository
+2. Create a feature branch
+3. Commit with clear messages
+4. Open a pull request describing your changes
+
+Please include appropriate tests and documentation for new code.
+
+---
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the **MIT License**.
